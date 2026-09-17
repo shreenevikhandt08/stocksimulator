@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: #070b12;
+  margin: 0;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #243044 #070b12;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.panel {
+  @apply rounded-lg border border-line bg-ink-900;
+}
+
+.kicker {
+  @apply text-[11px] font-medium uppercase tracking-[0.16em] text-mist;
+}
+
+.pos {
+  color: #3ddeb3;
+}
+.neg {
+  color: #f07178;
+}
+.neu {
+  color: #8b9bb4;
+}

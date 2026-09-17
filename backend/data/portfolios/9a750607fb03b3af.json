@@ -1,0 +1,332 @@
+{
+  "as_of": "2026-09-15",
+  "skipped": [],
+  "recent_shown": {
+    "ZOMATO": "2026-09-11",
+    "JSWSTEEL": "2026-09-11",
+    "ONGC": "2026-09-11",
+    "LTIM": "2026-09-11",
+    "GODREJPROP": "2026-09-11",
+    "BEL": "2026-09-11",
+    "HAL": "2026-09-11",
+    "DRREDDY": "2026-09-11",
+    "HCLTECH": "2026-09-11",
+    "EICHERMOT": "2026-09-11",
+    "INDUSINDBK": "2026-09-11",
+    "BAJFINANCE": "2026-09-11",
+    "KOTAKBANK": "2026-09-11",
+    "TATAELXSI": "2026-09-11",
+    "BAJAJFINSV": "2026-09-11",
+    "HDFCBANK": "2026-09-11",
+    "BAJAJ-AUTO": "2026-09-11",
+    "IOC": "2026-09-11",
+    "NFLX": "2026-09-11",
+    "NVDA": "2026-09-11"
+  },
+  "book_override": null,
+  "book_override_date": null,
+  "sim": {
+    "idx": 319,
+    "cash": 6874.83054242809,
+    "savings": 0.0,
+    "total_contributed": 10000.0,
+    "peak": 10542.39189077895,
+    "cb_tier": 0,
+    "force_bear_budget": false,
+    "liquidated_once": false,
+    "pause_until": null,
+    "pause_override": false,
+    "last_invest_date": "2026-09-11",
+    "prev_value": 9906.12114225177,
+    "daily_returns": [],
+    "regime_calls": [],
+    "cooldowns": {},
+    "pending_actions": [],
+    "dismissed_pending": {},
+    "positions": [
+      {
+        "ticker": "ZOMATO",
+        "qty": 2.0,
+        "avg_cost": 300.5020648557383,
+        "opened_on": "2026-09-11",
+        "days_held": 0,
+        "extensions": 0,
+        "last_atr": 0.0,
+        "stop": null
+      },
+      {
+        "ticker": "JSWSTEEL",
+        "qty": 0.4944216399775353,
+        "avg_cost": 823.1840338106815,
+        "opened_on": "2026-09-11",
+        "days_held": 0,
+        "extensions": 0,
+        "last_atr": 0.0,
+        "stop": null
+      },
+      {
+        "ticker": "ONGC",
+        "qty": 1.0,
+        "avg_cost": 184.1653278604336,
+        "opened_on": "2026-09-11",
+        "days_held": 0,
+        "extensions": 0,
+        "last_atr": 0.0,
+        "stop": null
+      },
+      {
+        "ticker": "LTIM",
+        "qty": 0.03648037236448694,
+        "avg_cost": 9758.672319544641,
+        "opened_on": "2026-09-11",
+        "days_held": 0,
+        "extensions": 0,
+        "last_atr": 0.0,
+        "stop": null
+      },
+      {
+        "ticker": "NFLX",
+        "qty": 0.005544849551507133,
+        "avg_cost": 78992.22439334684,
+        "opened_on": "2026-09-11",
+        "days_held": 0,
+        "extensions": 0,
+        "last_atr": 0.0,
+        "stop": null
+      },
+      {
+        "ticker": "NVDA",
+        "qty": 0.0020803233840005213,
+        "avg_cost": 178337.65791093325,
+        "opened_on": "2026-09-11",
+        "days_held": 0,
+        "extensions": 0,
+        "last_atr": 0.0,
+        "stop": null
+      },
+      {
+        "ticker": "AMD",
+        "qty": 0.01997256055360104,
+        "avg_cost": 20077.545837141046,
+        "opened_on": "2026-09-11",
+        "days_held": 0,
+        "extensions": 0,
+        "last_atr": 0.0,
+        "stop": null
+      },
+      {
+        "ticker": "AVGO",
+        "qty": 0.01103237170233299,
+        "avg_cost": 33265.73921746956,
+        "opened_on": "2026-09-11",
+        "days_held": 0,
+        "extensions": 0,
+        "last_atr": 0.0,
+        "stop": null
+      }
+    ],
+    "trades": [
+      {
+        "date": "2026-09-11",
+        "ticker": "ZOMATO",
+        "side": "buy",
+        "qty": 2.0,
+        "price": 300.5020648557383,
+        "amount": 601.0041297114766,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-11",
+        "ticker": "JSWSTEEL",
+        "side": "buy",
+        "qty": 0.4944216399775353,
+        "price": 823.1840338106815,
+        "amount": 407.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-11",
+        "ticker": "ONGC",
+        "side": "buy",
+        "qty": 1.0,
+        "price": 184.1653278604336,
+        "amount": 184.1653278604336,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-11",
+        "ticker": "LTIM",
+        "side": "buy",
+        "qty": 0.03648037236448694,
+        "price": 9758.672319544641,
+        "amount": 356.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-11",
+        "ticker": "NFLX",
+        "side": "buy",
+        "qty": 0.005544849551507133,
+        "price": 78992.22439334684,
+        "amount": 438.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-11",
+        "ticker": "NVDA",
+        "side": "buy",
+        "qty": 0.0020803233840005213,
+        "price": 178337.65791093325,
+        "amount": 371.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-11",
+        "ticker": "AMD",
+        "side": "buy",
+        "qty": 0.01997256055360104,
+        "price": 20077.545837141046,
+        "amount": 401.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-11",
+        "ticker": "AVGO",
+        "side": "buy",
+        "qty": 0.01103237170233299,
+        "price": 33265.73921746956,
+        "amount": 367.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      }
+    ],
+    "history": [
+      {
+        "date": "2026-09-11",
+        "regime": "bull",
+        "budget": 0.0,
+        "deployed": 3125.17,
+        "portfolio_value": 10542.39189077895,
+        "cash": 6874.83054242809,
+        "savings": 0.0,
+        "daily_pnl": 542.39,
+        "drawdown_pct": 0.0,
+        "reserve_pct": 0.6521129752766311,
+        "peak": 10542.39189077895
+      },
+      {
+        "date": "2026-09-14",
+        "regime": "sideways",
+        "budget": 0.0,
+        "deployed": 0.0,
+        "portfolio_value": 9906.12114225177,
+        "cash": 6874.83054242809,
+        "savings": 0.0,
+        "daily_pnl": -636.2707485271803,
+        "drawdown_pct": 0.009387885774823008,
+        "reserve_pct": 0.6939982303573329,
+        "peak": 10000.0
+      },
+      {
+        "date": "2026-09-15",
+        "regime": "bull",
+        "budget": 0.0,
+        "deployed": 0.0,
+        "portfolio_value": 10542.39189077895,
+        "cash": 6874.83054242809,
+        "savings": 0.0,
+        "daily_pnl": 636.2707485271803,
+        "drawdown_pct": -0.054239189077895024,
+        "reserve_pct": 0.6521129752766311,
+        "peak": 10000.0
+      }
+    ],
+    "rule_flags": {
+      "quality_filter": true,
+      "cooldown": true,
+      "earnings_blackout": true,
+      "sleeve_max": true,
+      "subsector_cap": true,
+      "sector_cap": true,
+      "max_position": true,
+      "cash_reserve": true,
+      "daily_budget": true,
+      "hold_maturity": true,
+      "atr_stops": true,
+      "trim_cap": true,
+      "drawdown_breaker": true,
+      "winner_rollover": false,
+      "value_condition": false,
+      "news_decay": false,
+      "post_earnings_cooling": false,
+      "three_mode": false
+    },
+    "rule_params": {
+      "cooldown_days": 30.0,
+      "earnings_blackout_days": 5.0,
+      "max_subsector_names": 3.0,
+      "max_sector_pct": 0.4,
+      "max_position_pct": 0.1,
+      "trim_to_pct": 0.08,
+      "cash_reserve_pct": 0.05,
+      "contribution_bull": 10000.0,
+      "contribution_sideways": 7000.0,
+      "contribution_bear": 3000.0,
+      "friday_contribution_cap": 5000.0,
+      "hold_days": 30.0,
+      "equity_atr_mult": 2.0,
+      "crypto_atr_mult": 1.5,
+      "drawdown_t1": 0.1,
+      "drawdown_t2": 0.15,
+      "drawdown_t3": 0.2,
+      "drawdown_resume": 0.07,
+      "pause_t1_days": 3.0,
+      "pause_t2_days": 7.0,
+      "winner_rollover_days": 15.0,
+      "sentiment_halflife": 3.0,
+      "post_earnings_cooling_days": 3.0
+    },
+    "allocation": {
+      "india": {
+        "min": 0.3,
+        "max": 0.45,
+        "default": 0.35
+      },
+      "us": {
+        "min": 0.15,
+        "max": 0.25,
+        "default": 0.2
+      },
+      "commodities": {
+        "min": 0.1,
+        "max": 0.25,
+        "default": 0.15
+      },
+      "bonds": {
+        "min": 0.05,
+        "max": 0.2,
+        "default": 0.1
+      },
+      "crypto": {
+        "min": 0.05,
+        "max": 0.1,
+        "default": 0.07
+      }
+    }
+  }
+}

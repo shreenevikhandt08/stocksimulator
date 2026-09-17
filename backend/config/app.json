@@ -1,0 +1,10 @@
+{
+  "live_data": true,
+  "live_poll_seconds": 3.0,
+  "host": "127.0.0.1",
+  "port": 8000,
+  "data_file": "data/portfolio.json",
+  "market_tz": "Asia/Kolkata",
+  "market_open": "09:15",
+  "market_close": "15:30"
+}
