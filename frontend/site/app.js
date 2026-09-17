@@ -23,6 +23,16 @@ const NAV_GROUPS = [
 ];
 const NAV = NAV_GROUPS.flatMap((g) => g.items);
 
+const NAV_ICO = {
+  home: `<svg class="nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>`,
+  trade: `<svg class="nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 16h6l3-8 3 5h4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 20h16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>`,
+  portfolio: `<svg class="nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="1.75"/><rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" stroke-width="1.75"/><path d="M3 12h18" stroke="currentColor" stroke-width="1.75"/></svg>`,
+  search: `<svg class="nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.75"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>`,
+  chart: `<svg class="nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V5M4 19h16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><path d="M8 15v-3M12 15V8M16 15v-5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>`,
+  rules: `<svg class="nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 4h9a2 2 0 0 1 2 2v14l-3-1.5L13 20l-3-1.5L7 20V6a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M10 9h6M10 13h6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>`,
+  logout: `<svg class="nav-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M10 7V6a2 2 0 0 1 2-2h7v16h-7a2 2 0 0 1-2-2v-1M14 12H4m0 0 3-3M4 12l3 3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+};
+
 const UI_ICO = {
   chevronLeft: `<svg class="ui-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6 9 12l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   chevronRight: `<svg class="ui-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -71,19 +81,26 @@ function navAbbr(label) {
   return w.slice(0, 2);
 }
 
-function sidebarLinkHtml([href, label], page) {
+function sidebarLinkHtml([href, label, icon], page) {
   const on = navPageId(href) === page;
-  return `<a href="${href}" class="sidebar-link${on ? " on" : ""}" data-abbr="${esc(navAbbr(label))}" title="${esc(label)}"${on ? ' aria-current="page"' : ""}>
-    <span class="sidebar-abbr" aria-hidden="true">${esc(navAbbr(label))}</span>
+  const ico = NAV_ICO[icon] || NAV_ICO.home;
+  return `<a href="${href}" class="sidebar-link${on ? " on" : ""}" title="${esc(label)}"${on ? ' aria-current="page"' : ""}>
+    <span class="sidebar-ico" aria-hidden="true">${ico}</span>
     <span class="sidebar-lbl">${esc(label)}</span>
   </a>`;
 }
 
 function sidebarNavHtml(page) {
-  return NAV_GROUPS.map((group) => `
-    <div class="sidebar-group">
-      <p class="sidebar-group-label">${esc(group.label)}</p>
-      ${group.items.map((item) => sidebarLinkHtml(item, page)).join("")}
+  return NAV_GROUPS.map((group, i) => `
+    <div class="sidebar-group${i === 0 ? " is-first" : ""}">
+      <div class="sidebar-subbar" role="presentation">
+        <span class="sidebar-subbar-line" aria-hidden="true"></span>
+        <p class="sidebar-group-label">${esc(group.label)}</p>
+        <span class="sidebar-subbar-line" aria-hidden="true"></span>
+      </div>
+      <div class="sidebar-group-links">
+        ${group.items.map((item) => sidebarLinkHtml(item, page)).join("")}
+      </div>
     </div>`).join("");
 }
 
@@ -1413,8 +1430,14 @@ function shell(inner, meta) {
               <span class="sidebar-user-role">Signed in</span>
             </div>
           </div>
-          <button type="button" class="sidebar-logout" id="logoutBtnSidebar">Sign out</button>
-        ` : `<a class="sidebar-login" href="#/login">Sign in</a>`}
+          <button type="button" class="sidebar-logout" id="logoutBtnSidebar" title="Sign out">
+            <span class="sidebar-ico" aria-hidden="true">${NAV_ICO.logout}</span>
+            <span class="sidebar-logout-lbl">Sign out</span>
+          </button>
+        ` : `<a class="sidebar-login" href="#/login" title="Sign in">
+            <span class="sidebar-ico" aria-hidden="true">${UI_ICO.login}</span>
+            <span class="sidebar-logout-lbl">Sign in</span>
+          </a>`}
       </div>
     </aside>
     <div class="desk-main-col">
