@@ -180,6 +180,8 @@ market → social → news → fundamentals → bull vs bear → verdict
 | `backend/.env` | `HOST`, `PORT`, `CORS_ORIGINS`, `APP_ENV`, live keys (overrides app.json) |
 | `backend/.env.example` | Safe template for local setup |
 | `backend/.env.production.example` | Safe template for VPS / cloud |
+| `frontend/.env` | Vite: `VITE_API_BASE` → backend URL (e.g. `https://apitrade.snsihub.ai`) |
+| `frontend/site/config.js` | Vanilla SPA: `window.__SNS__.apiBase` (empty = same origin) |
 | `backend/data/portfolio.json` | Persisted book |
 
 ---

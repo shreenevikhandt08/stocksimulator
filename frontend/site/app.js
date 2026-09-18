@@ -1,3 +1,12 @@
+/** Backend origin from /static/config.js — empty = same host as the page */
+const API_BASE = String((window.__SNS__ && window.__SNS__.apiBase) || "").replace(/\/$/, "");
+
+function apiUrl(path) {
+  if (!path) return API_BASE || "/";
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 const NAV_GROUPS = [
   {
     label: "Desk",
@@ -303,6 +312,7 @@ async function api(path, init, { auth = true } = {}) {
   const method = (init && init.method) || "GET";
   let url = path;
   if (method === "GET" && viewDate) url += (path.includes("?") ? "&" : "?") + "as_of=" + encodeURIComponent(viewDate);
+  url = apiUrl(url);
   const headers = { "Content-Type": "application/json", ...(init?.headers || {}) };
   const token = authToken();
   if (auth && token) headers.Authorization = `Bearer ${token}`;
@@ -312,7 +322,8 @@ async function api(path, init, { auth = true } = {}) {
   } catch (err) {
     const m = String(err?.message || err || "");
     if (/failed to fetch|networkerror|load failed/i.test(m)) {
-      throw new Error("Server unreachable — run .\\run.ps1 and keep http://127.0.0.1:8000 open, then retry.");
+      const hint = API_BASE || "http://127.0.0.1:8000";
+      throw new Error(`Server unreachable — check API at ${hint} (set window.__SNS__.apiBase in config.js).`);
     }
     throw new Error(m || "Network error");
   }
@@ -1721,7 +1732,7 @@ async function downloadReport(format = "pdf", asOf = "") {
   const headers = { Accept: format === "json" ? "application/json" : "*/*" };
   const token = authToken();
   if (token) headers.Authorization = `Bearer ${token}`;
-  const res = await fetch(`/api/report?${params}`, { headers, credentials: "same-origin" });
+  const res = await fetch(apiUrl(`/api/report?${params}`), { headers, credentials: API_BASE ? "omit" : "same-origin" });
   if (!res.ok) {
     let msg = `Report failed (${res.status})`;
     try {
@@ -3253,8 +3264,8 @@ function bindLive() {
   if (streamOff) return;
 
   const token = authToken();
-  const url = token ? `/api/quotes/stream?token=${encodeURIComponent(token)}` : "/api/quotes/stream";
-  const es = new EventSource(url);
+  const streamPath = token ? `/api/quotes/stream?token=${encodeURIComponent(token)}` : "/api/quotes/stream";
+  const es = new EventSource(apiUrl(streamPath));
   window.__es = es;
   es.onmessage = (ev) => { try { applyQuotes(JSON.parse(ev.data)); } catch { /* */ } };
   es.onerror = () => {
@@ -7211,7 +7222,7 @@ async function render() {
     if (tickers.length) mem.set("researchPicks", researchPicks);
   } catch (e) {
     if (e.message === "Please log in") return;
-    app.innerHTML = shell(`<div class="panel panel-bd"><p>Run .\\run.ps1 then open http://127.0.0.1:8000</p><pre class="neg">${esc(e.message)}</pre></div>`, { connected: false });
+    app.innerHTML = shell(`<div class="panel panel-bd"><p>API unreachable. Set <code>apiBase</code> in <code>/static/config.js</code> or open the desk URL.</p><pre class="neg">${esc(e.message)}</pre></div>`, { connected: false });
   }
 }
 
