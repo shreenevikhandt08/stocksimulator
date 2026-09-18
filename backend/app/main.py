@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import router
 from app.auth_store import resolve_token
+from app.config import settings
 from app.data.live import TAPE
 from app.user_context import set_user
 
@@ -34,9 +35,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors = settings.cors_origin_list or [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "http://127.0.0.1:8000", "http://localhost:8000"],
+    allow_origins=_cors,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

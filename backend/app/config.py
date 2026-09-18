@@ -90,9 +90,22 @@ class Settings(BaseModel):
     live_poll_seconds: float = 3.0
     host: str = "127.0.0.1"
     port: int = 8000
+    app_env: str = "development"
+    cors_origins: str = (
+        "http://127.0.0.1:8000,http://localhost:8000,"
+        "http://127.0.0.1:5173,http://localhost:5173"
+    )
     data_file: str = "data/portfolio.json"
     finnhub_api_key: str = ""
     alpha_vantage_api_key: str = ""
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def is_production(self) -> bool:
+        return self.app_env.strip().lower() in {"prod", "production"}
 
     @property
     def regime_budget(self) -> Dict[str, float]:
@@ -138,8 +151,7 @@ def _read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _dotenv() -> dict:
-    path = BACKEND_ROOT / ".env"
+def _parse_dotenv(path: Path) -> Dict[str, str]:
     out: Dict[str, str] = {}
     if not path.exists():
         return out
@@ -152,14 +164,76 @@ def _dotenv() -> dict:
     return out
 
 
+def _dotenv() -> dict:
+    """Load root .env then backend/.env (backend wins on conflicts)."""
+    root = BACKEND_ROOT.parent / ".env"
+    return {**_parse_dotenv(root), **_parse_dotenv(BACKEND_ROOT / ".env")}
+
+
+def _env_get(file_env: dict, *keys: str) -> str:
+    for key in keys:
+        raw = os.environ.get(key)
+        if raw is not None and str(raw).strip() != "":
+            return str(raw).strip()
+        file_val = file_env.get(key)
+        if file_val is not None and str(file_val).strip() != "":
+            return str(file_val).strip()
+    return ""
+
+
+def _env_bool(raw: str, default: bool) -> bool:
+    if not raw:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @lru_cache
 def get_settings() -> Settings:
     merged = {**_read_json(RULES_FILE), **_read_json(APP_FILE)}
     env = _dotenv()
-    merged["finnhub_api_key"] = (os.environ.get("FINNHUB_API_KEY") or env.get("FINNHUB_API_KEY") or "").strip()
-    merged["alpha_vantage_api_key"] = (
-        os.environ.get("ALPHA_VANTAGE_API_KEY") or env.get("ALPHA_VANTAGE_API_KEY") or ""
-    ).strip()
+
+    merged["finnhub_api_key"] = _env_get(env, "FINNHUB_API_KEY")
+    merged["alpha_vantage_api_key"] = _env_get(env, "ALPHA_VANTAGE_API_KEY")
+
+    app_env = _env_get(env, "APP_ENV", "ENVIRONMENT")
+    if app_env:
+        merged["app_env"] = app_env
+
+    host = _env_get(env, "HOST")
+    if host:
+        merged["host"] = host
+
+    # Platform PORT (Railway/Render/Heroku) overrides file + app.json
+    port_raw = _env_get(env, "PORT")
+    if port_raw:
+        try:
+            merged["port"] = int(port_raw)
+        except ValueError:
+            pass
+
+    cors = _env_get(env, "CORS_ORIGINS")
+    if cors:
+        merged["cors_origins"] = cors
+
+    live_raw = _env_get(env, "LIVE_DATA")
+    if live_raw:
+        merged["live_data"] = _env_bool(live_raw, True)
+
+    poll_raw = _env_get(env, "LIVE_POLL_SECONDS")
+    if poll_raw:
+        try:
+            merged["live_poll_seconds"] = float(poll_raw)
+        except ValueError:
+            pass
+
+    data_file = _env_get(env, "DATA_FILE")
+    if data_file:
+        merged["data_file"] = data_file
+
+    market_tz = _env_get(env, "MARKET_TZ")
+    if market_tz:
+        merged["market_tz"] = market_tz
+
     return Settings.model_validate(merged)
 
 

@@ -1,5 +1,9 @@
 .venv/
+.env
 backend/.env
+!.env.example
+!backend/.env.example
+!backend/.env.production.example
 backend/data/*.json
 !backend/data/.gitkeep
 __pycache__/

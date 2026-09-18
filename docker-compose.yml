@@ -1,0 +1,15 @@
+services:
+  desk:
+    build: .
+    ports:
+      - "${PORT:-8000}:8000"
+    env_file:
+      - backend/.env
+    environment:
+      APP_ENV: production
+      HOST: 0.0.0.0
+      PORT: "8000"
+    volumes:
+      - ./backend/data:/repo/backend/data
+      - ./backend/config:/repo/backend/config
+    restart: unless-stopped

@@ -1,0 +1,151 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs "NodeJS_22"
+    }
+
+    environment {
+        AWS_REGION = "ap-south-1"
+        S3_BUCKET = "pathmate.snsihub.ai"
+        CLOUDFRONT_DISTRIBUTION_ID = "E1J9WSGAA4AFAM"
+        // CRA writes to build/ (not dist/)
+        BUILD_DIR = "build"
+        REACT_APP_API_URL="https://aipath.snsihub.ai/api"
+
+    }
+
+    stages {
+
+        stage('Check Node Version') {
+            steps {
+                sh '''
+                    echo "========================================"
+                    echo "Node Version:"
+                    node -v
+                    echo "NPM Version:"
+                    npm -v
+                    echo "Workspace: $(pwd)"
+                    echo "========================================"
+                '''
+            }
+        }
+
+        stage('Clean Workspace') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        echo "Cleaning old build files in frontend/..."
+                        rm -rf node_modules
+                        rm -rf build
+                        rm -rf dist
+                        echo "Workspace cleaned."
+                    '''
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        echo "Installing dependencies from frontend/..."
+                        test -f package-lock.json
+                        test -f package.json
+                        npm ci --legacy-peer-deps || npm install --no-audit --no-fund --legacy-peer-deps
+                        echo "Dependencies installed successfully."
+                    '''
+                }
+            }
+        }
+
+        stage('Build React App') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        echo "Building React application..."
+                        export NODE_OPTIONS="--max-old-space-size=4096"
+                        CI=false npm run build
+                        echo "React build completed."
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Build') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        echo "========================================"
+                        echo "Verifying build..."
+                        echo "========================================"
+
+                        if [ ! -d "build" ]; then
+                            echo "ERROR: build directory was not created."
+                            exit 1
+                        fi
+
+                        echo "Build directory:"
+                        ls -lah build
+                        echo "Build verification successful."
+                    '''
+                }
+            }
+        }
+
+        stage('Upload to S3') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        echo "========================================"
+                        echo "Uploading build to S3..."
+                        echo "Bucket: $S3_BUCKET"
+                        echo "Region: $AWS_REGION"
+                        echo "========================================"
+
+                        aws s3 sync build/ s3://$S3_BUCKET/ \
+                            --delete \
+                            --region $AWS_REGION
+
+                        echo "S3 upload completed successfully."
+                    '''
+                }
+            }
+        }
+
+        stage('Invalidate CloudFront') {
+            steps {
+                sh '''
+                    echo "========================================"
+                    echo "Creating CloudFront invalidation..."
+                    echo "Distribution: $CLOUDFRONT_DISTRIBUTION_ID"
+                    echo "========================================"
+
+                    aws cloudfront create-invalidation \
+                        --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+                        --paths "/*"
+
+                    echo "CloudFront invalidation created successfully."
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "========================================"
+            echo "Deployment Successful!"
+            echo "========================================"
+        }
+
+        failure {
+            echo "========================================"
+            echo "Deployment Failed!"
+            echo "========================================"
+        }
+
+        always {
+            deleteDir()
+        }
+    }
+}

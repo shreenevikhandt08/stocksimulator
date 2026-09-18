@@ -630,10 +630,14 @@ def _live_pack(st, n_bars: int = 28) -> dict:
 
 @router.get("/health")
 def health():
+    s = get_settings()
     return {
         "status": "ok",
         "connected": True,
         "api": "sns-capital",
+        "app_env": s.app_env,
+        "host": s.host,
+        "port": s.port,
         "orchestrator": ORCHESTRATOR,
         "calendar_date": date.today().isoformat(),
         "clock": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

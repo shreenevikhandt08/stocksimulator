@@ -13,26 +13,66 @@ cd e:\stockmarket
 .\run.ps1
 ```
 
-Open **http://127.0.0.1:8000** in the browser.
+Linux / Mac:
+
+```bash
+chmod +x ./run.sh
+./run.sh
+```
+
+Open **http://127.0.0.1:8000** (or whatever `PORT` you set) in the browser.
 
 - Do **not** open `frontend/site/index.html` from disk — `/api` and `/static` will not load.
-- If you see `Already running: http://127.0.0.1:8000`, the desk is up; just open the URL.
-- After code or config changes, stop uvicorn (Ctrl+C in the terminal) and run `.\run.ps1` again.
+- If you see `Already running: …`, the desk is up; just open the URL.
+- After code or config changes, stop uvicorn (Ctrl+C) and run the script again.
 - Hard-refresh the browser (**Ctrl+F5**) after UI updates.
 
-First run creates `backend\.venv` and installs dependencies automatically.
+First run creates `backend/.venv` and installs dependencies automatically.
 
-### Optional live-data keys
+### Environment files
 
-Copy `backend\.env.example` to `backend\.env` and add keys if you want:
+| File | Purpose |
+|---|---|
+| `backend/.env.example` | Local template — copy to `backend/.env` |
+| `backend/.env.production.example` | Hosting template (`HOST=0.0.0.0`, public CORS) |
+| `.env.example` | Optional repo-root env (backend `.env` wins on conflicts) |
+| `backend/.env` | Your secrets — **gitignored**, never commit |
+
+```powershell
+Copy-Item backend\.env.example backend\.env
+# edit HOST, PORT, API keys, CORS_ORIGINS
+```
+
+Key variables:
 
 ```env
+APP_ENV=development
+HOST=127.0.0.1
+PORT=8000
+CORS_ORIGINS=http://127.0.0.1:8000,http://localhost:8000
+LIVE_DATA=true
+LIVE_POLL_SECONDS=3.0
 ALPHA_VANTAGE_API_KEY=
 FINNHUB_API_KEY=
 ```
 
-Restart the desk after editing `.env`. Rules stay in `rules.json`, not `.env`.
+Process env (`$env:PORT`, Railway/Render `PORT`, etc.) overrides the file. Rules stay in `rules.json`, not `.env`.
 
+### Hosting checklist
+
+1. Copy `backend/.env.production.example` → `backend/.env` on the server.
+2. Set `HOST=0.0.0.0`, `PORT` to the platform port, `APP_ENV=production`.
+3. Set `CORS_ORIGINS` to your public `https://` URL(s).
+4. Put API keys in the host’s secret store or `.env`.
+5. Run `./run.sh` (or `uvicorn app.main:app --host $HOST --port $PORT` from `backend/`).
+6. Point a reverse proxy (nginx / Caddy / platform) at that port; serve the same origin so the SPA’s `/api` calls work.
+
+Docker (optional):
+
+```bash
+# ensure backend/.env exists
+docker compose up --build
+```
 ---
 
 ## Check it works
@@ -136,8 +176,10 @@ market → social → news → fundamentals → bull vs bear → verdict
 | File | Purpose |
 |---|---|
 | `backend/config/rules.json` | Cash, sleeves, caps, stops, drawdown, scoring, `suggestion_count` |
-| `backend/config/app.json` | `live_data`, `live_poll_seconds`, host, port, data file |
-| `backend/.env` | Optional `ALPHA_VANTAGE_API_KEY`, `FINNHUB_API_KEY` |
+| `backend/config/app.json` | Defaults for live poll, host, port, data file |
+| `backend/.env` | `HOST`, `PORT`, `CORS_ORIGINS`, `APP_ENV`, live keys (overrides app.json) |
+| `backend/.env.example` | Safe template for local setup |
+| `backend/.env.production.example` | Safe template for VPS / cloud |
 | `backend/data/portfolio.json` | Persisted book |
 
 ---

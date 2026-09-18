@@ -1,0 +1,103 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION = 'ap-south-1'
+        ECR_REPO = '864981730114.dkr.ecr.ap-south-1.amazonaws.com/ai-path'
+        ECS_CLUSTER = 'hyre-assessment-cluster'
+        ECS_SERVICE = 'ai-path-builder-service'
+        TASK_FAMILY = 'ai-path-builder'  // Task Definition Name
+        CONTAINER_NAME = 'ai-path'   // Name of the container inside ECS task definition
+    }
+
+    stages {
+        stage('AWS ECR Login') {
+            steps {
+                script {
+                    sh '''
+                    aws ecr get-login-password --region "$AWS_REGION" | \
+                      docker login --username AWS --password-stdin 864981730114.dkr.ecr.ap-south-1.amazonaws.com
+                    '''
+                }
+            }
+        }
+
+        stage('Build & Push Docker Image') {
+            steps {
+                script {
+                    sh """
+                    set -e
+                    echo "Workspace: \$(pwd)"
+                    ls -la
+
+                    if [ -f backend/Dockerfile ]; then
+                      echo "Using backend/Dockerfile (full repo checkout)"
+                      docker build -t ${ECR_REPO}:latest -f backend/Dockerfile backend
+                    elif [ -f Dockerfile ]; then
+                      echo "Using ./Dockerfile (backend-only checkout)"
+                      docker build -t ${ECR_REPO}:latest .
+                    else
+                      echo "ERROR: Dockerfile not found"
+                      find . -name Dockerfile -print
+                      exit 1
+                    fi
+
+                    docker push ${ECR_REPO}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Register New Task Definition with Latest Image') {
+            steps {
+                script {
+                    // Fetch the existing task definition
+                    sh "aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition' > task-def.json"
+
+                    // Keep container port 5000 — ECS service / ALB is mapped to 5000
+                    sh """
+                    jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
+                        .containerDefinitions[0].image = "${ECR_REPO}:latest" |
+                        .containerDefinitions[0].portMappings = [{"containerPort":5000,"hostPort":5000,"protocol":"tcp","name":"ai-path-5000-tcp","appProtocol":"http"}] |
+                        .containerDefinitions[0].environment |= map(if .name == "PORT" then .value = "5000" else . end)' task-def.json > new-task-def.json
+                    """
+
+                    // Register the updated task definition
+                    sh "aws ecs register-task-definition --cli-input-json file://new-task-def.json"
+                }
+            }
+        }
+
+        stage('Update ECS Service with New Task Definition') {
+            steps {
+                script {
+                    def TASK_REVISION = sh(script: "aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition.revision' --output text", returnStdout: true).trim()
+                    echo "New Task Definition Revision: ${TASK_REVISION}"
+
+                    sh """
+                    aws ecs update-service --cluster ${ECS_CLUSTER} --service ${ECS_SERVICE} --task-definition ${TASK_FAMILY}:${TASK_REVISION} --force-new-deployment
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '✅ Backend Deployment Successful! 🎉'
+
+            // 🔥 Remove unused Docker images **immediately**
+            sh 'docker image prune -a -f'
+
+            // 🔥 Remove stopped containers
+            sh 'docker container prune -f'
+        }
+        failure {
+            echo 'Backend Deployment Failed!'
+        }
+        always {
+            // 🔄 Ensure unused volumes and networks are cleaned up
+            sh 'docker system prune -f --volumes'
+        }
+    }
+}
