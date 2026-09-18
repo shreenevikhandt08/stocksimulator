@@ -7,11 +7,10 @@ pipeline {
 
     environment {
         AWS_REGION = "ap-south-1"
-        S3_BUCKET = "pathmate.snsihub.ai"
-        CLOUDFRONT_DISTRIBUTION_ID = "E1J9WSGAA4AFAM"
-        // CRA writes to build/ (not dist/)
+        S3_BUCKET = "mytrade.snsihub.ai"
+        CLOUDFRONT_DISTRIBUTION_ID = "E21GX2OMDX42L8"
+        VITE_API_BASE="https://apitrade.snsihub.ai"
         BUILD_DIR = "build"
-        REACT_APP_API_URL="https://aipath.snsihub.ai/api"
 
     }
 
