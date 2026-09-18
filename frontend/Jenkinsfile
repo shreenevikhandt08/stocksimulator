@@ -7,8 +7,8 @@ pipeline {
 
     environment {
         AWS_REGION = "ap-south-1"
-        S3_BUCKET = "pathmate.snsihub.ai"
-        CLOUDFRONT_DISTRIBUTION_ID = "E1J9WSGAA4AFAM"
+        S3_BUCKET = "mytrade.snsihub.ai"
+        CLOUDFRONT_DISTRIBUTION_ID = "E21GX2OMDX42L8"
         // Vite writes to dist/ (not CRA build/)
         BUILD_DIR = "dist"
         VITE_API_BASE = "https://apitrade.snsihub.ai"
