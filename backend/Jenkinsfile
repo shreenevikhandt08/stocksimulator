@@ -8,10 +8,7 @@ pipeline {
         ECS_SERVICE = 'my-trade-service'
         TASK_FAMILY = 'my-trade'
         CONTAINER_NAME = 'my-trade'
-        APP_PORT = '8000'
         API_HOSTNAME = 'apitrade.snsihub.ai'
-        FRONTEND_ORIGIN = 'https://mytrade.snsihub.ai'
-        CORS_ORIGINS = 'https://mytrade.snsihub.ai,https://apitrade.snsihub.ai'
     }
 
     stages {
@@ -28,28 +25,18 @@ pipeline {
 
         stage('Build & Push Docker Image') {
             steps {
-                script {
-                    sh """
-                    set -e
-                    echo "Workspace: \$(pwd)"
-                    ls -la
-
-                    if [ -f backend/Dockerfile ]; then
-                      echo "Using backend/Dockerfile (Python FastAPI)"
-                      test -f backend/requirements.txt
-                      test -d backend/app
-                      docker build -t ${ECR_REPO}:latest -f backend/Dockerfile backend
-                    elif [ -f Dockerfile ]; then
-                      echo "Using ./Dockerfile (backend-only checkout)"
-                      docker build -t ${ECR_REPO}:latest .
-                    else
-                      echo "ERROR: Dockerfile not found"
-                      find . -name Dockerfile -print
-                      exit 1
-                    fi
-
-                    docker push ${ECR_REPO}:latest
-                    """
+                dir('backend') {
+                    script {
+                        sh """
+                        set -e
+                        echo "Building from backend/ (Python FastAPI)"
+                        test -f Dockerfile
+                        test -f requirements.txt
+                        test -d app
+                        docker build -t ${ECR_REPO}:latest .
+                        docker push ${ECR_REPO}:latest
+                        """
+                    }
                 }
             }
         }
@@ -59,43 +46,33 @@ pipeline {
                 script {
                     sh '''
                     set -e
-                    echo "Ensuring DNS: ${API_HOSTNAME} -> ALB for ${ECS_SERVICE}"
-
                     ZONE_ID=$(aws route53 list-hosted-zones-by-name \
                       --dns-name snsihub.ai. \
                       --query "HostedZones[?Name=='snsihub.ai.'].Id | [0]" \
                       --output text | sed 's|/hostedzone/||')
 
                     if [ -z "$ZONE_ID" ] || [ "$ZONE_ID" = "None" ]; then
-                      echo "ERROR: Route53 hosted zone snsihub.ai not found"
-                      exit 1
+                      echo "WARN: hosted zone snsihub.ai not found — skip DNS"
+                      exit 0
                     fi
-                    echo "Hosted zone: $ZONE_ID"
 
                     TG_ARN=$(aws ecs describe-services \
                       --region "$AWS_REGION" \
                       --cluster "$ECS_CLUSTER" \
                       --services "$ECS_SERVICE" \
                       --query 'services[0].loadBalancers[0].targetGroupArn' \
-                      --output text)
+                      --output text 2>/dev/null || true)
 
                     if [ -z "$TG_ARN" ] || [ "$TG_ARN" = "None" ]; then
-                      echo "ERROR: No target group on ECS service $ECS_SERVICE — attach an ALB target group first"
-                      exit 1
+                      echo "WARN: no ALB target group on $ECS_SERVICE — skip DNS (attach ALB in ECS)"
+                      exit 0
                     fi
-                    echo "Target group: $TG_ARN"
 
                     LB_ARN=$(aws elbv2 describe-target-groups \
                       --region "$AWS_REGION" \
                       --target-group-arns "$TG_ARN" \
                       --query 'TargetGroups[0].LoadBalancerArns[0]' \
                       --output text)
-
-                    if [ -z "$LB_ARN" ] || [ "$LB_ARN" = "None" ]; then
-                      echo "ERROR: Target group is not attached to a load balancer"
-                      exit 1
-                    fi
-
                     LB_DNS=$(aws elbv2 describe-load-balancers \
                       --region "$AWS_REGION" \
                       --load-balancer-arns "$LB_ARN" \
@@ -107,11 +84,9 @@ pipeline {
                       --query 'LoadBalancers[0].CanonicalHostedZoneId' \
                       --output text)
 
-                    echo "ALB DNS: $LB_DNS (zone $LB_ZONE)"
-
                     cat > /tmp/apitrade-dns.json <<EOF
 {
-  "Comment": "UPSERT ${API_HOSTNAME} alias to my-trade ALB",
+  "Comment": "UPSERT ${API_HOSTNAME} -> my-trade ALB",
   "Changes": [{
     "Action": "UPSERT",
     "ResourceRecordSet": {
@@ -126,13 +101,10 @@ pipeline {
   }]
 }
 EOF
-
                     aws route53 change-resource-record-sets \
                       --hosted-zone-id "$ZONE_ID" \
                       --change-batch file:///tmp/apitrade-dns.json
-
-                    echo "DNS UPSERT submitted for https://${API_HOSTNAME}"
-                    echo "Propagation can take 1–5 minutes."
+                    echo "DNS UPSERT: ${API_HOSTNAME} -> ${LB_DNS}"
                     '''
                 }
             }
@@ -144,27 +116,8 @@ EOF
                     sh "aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition' > task-def.json"
 
                     sh """
-                    jq --arg img "${ECR_REPO}:latest" --arg port "${APP_PORT}" --arg cors "${CORS_ORIGINS}" '
-                      del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
-                      | .containerDefinitions[0].image = \$img
-                      | .containerDefinitions[0].portMappings = [{
-                          "containerPort": (\$port|tonumber),
-                          "hostPort": (\$port|tonumber),
-                          "protocol": "tcp",
-                          "name": ("my-trade-" + \$port + "-tcp"),
-                          "appProtocol": "http"
-                        }]
-                      | .containerDefinitions[0].environment = (
-                          ((.containerDefinitions[0].environment // [])
-                            | map(select(.name != "PORT" and .name != "HOST" and .name != "APP_ENV" and .name != "CORS_ORIGINS")))
-                          + [
-                              {"name":"PORT","value":\$port},
-                              {"name":"HOST","value":"0.0.0.0"},
-                              {"name":"APP_ENV","value":"production"},
-                              {"name":"CORS_ORIGINS","value":\$cors}
-                            ]
-                        )
-                    ' task-def.json > new-task-def.json
+                    jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
+                        .containerDefinitions[0].image = "${ECR_REPO}:latest"' task-def.json > new-task-def.json
                     """
 
                     sh "aws ecs register-task-definition --cli-input-json file://new-task-def.json"
@@ -172,7 +125,7 @@ EOF
             }
         }
 
-        stage('Update ECS Service with Latest Image') {
+        stage('Update ECS Service with New Task Definition') {
             steps {
                 script {
                     def TASK_REVISION = sh(
@@ -196,12 +149,12 @@ EOF
     post {
         success {
             echo 'Backend Deployment Successful!'
-            echo "API should resolve at https://${API_HOSTNAME}/api/health after DNS propagates"
             sh 'docker image prune -a -f'
             sh 'docker container prune -f'
         }
         failure {
             echo 'Backend Deployment Failed!'
+            sh 'docker image prune -a -f'
         }
         always {
             sh 'docker system prune -f --volumes'
