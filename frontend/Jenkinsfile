@@ -9,10 +9,9 @@ pipeline {
         AWS_REGION = "ap-south-1"
         S3_BUCKET = "pathmate.snsihub.ai"
         CLOUDFRONT_DISTRIBUTION_ID = "E1J9WSGAA4AFAM"
-        // CRA writes to build/ (not dist/)
-        BUILD_DIR = "build"
-        REACT_APP_API_URL="https://aipath.snsihub.ai/api"
-
+        // Vite writes to dist/ (not CRA build/)
+        BUILD_DIR = "dist"
+        VITE_API_BASE = "https://apitrade.snsihub.ai"
     }
 
     stages {
@@ -50,9 +49,15 @@ pipeline {
                 dir('frontend') {
                     sh '''
                         echo "Installing dependencies from frontend/..."
-                        test -f package-lock.json
                         test -f package.json
-                        npm ci --legacy-peer-deps || npm install --no-audit --no-fund --legacy-peer-deps
+
+                        if [ -f package-lock.json ]; then
+                          npm ci --legacy-peer-deps || npm install --no-audit --no-fund --legacy-peer-deps
+                        else
+                          echo "No package-lock.json — using npm install"
+                          npm install --no-audit --no-fund --legacy-peer-deps
+                        fi
+
                         echo "Dependencies installed successfully."
                     '''
                 }
@@ -63,10 +68,12 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh '''
-                        echo "Building React application..."
+                        echo "Building Vite application..."
+                        echo "VITE_API_BASE=$VITE_API_BASE"
                         export NODE_OPTIONS="--max-old-space-size=4096"
+                        export VITE_API_BASE="$VITE_API_BASE"
                         CI=false npm run build
-                        echo "React build completed."
+                        echo "Vite build completed."
                     '''
                 }
             }
@@ -80,13 +87,14 @@ pipeline {
                         echo "Verifying build..."
                         echo "========================================"
 
-                        if [ ! -d "build" ]; then
-                            echo "ERROR: build directory was not created."
+                        if [ ! -d "$BUILD_DIR" ]; then
+                            echo "ERROR: $BUILD_DIR directory was not created."
+                            ls -la
                             exit 1
                         fi
 
-                        echo "Build directory:"
-                        ls -lah build
+                        echo "Build directory ($BUILD_DIR):"
+                        ls -lah "$BUILD_DIR"
                         echo "Build verification successful."
                     '''
                 }
@@ -103,7 +111,7 @@ pipeline {
                         echo "Region: $AWS_REGION"
                         echo "========================================"
 
-                        aws s3 sync build/ s3://$S3_BUCKET/ \
+                        aws s3 sync "$BUILD_DIR"/ s3://$S3_BUCKET/ \
                             --delete \
                             --region $AWS_REGION
 
