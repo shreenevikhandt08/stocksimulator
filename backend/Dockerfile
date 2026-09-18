@@ -10,7 +10,7 @@ RUN npm ci --omit=dev --legacy-peer-deps \
 COPY . .
 
 ENV NODE_ENV=production
-ENV PORT=5000
-EXPOSE 5000
+ENV PORT=8000
+EXPOSE 8000
 
 CMD ["node", "server.js"]
