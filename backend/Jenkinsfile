@@ -6,8 +6,10 @@ pipeline {
         ECR_REPO = '864981730114.dkr.ecr.ap-south-1.amazonaws.com/my-trade'
         ECS_CLUSTER = 'hyre-assessment-cluster'
         ECS_SERVICE = 'my-trade-service'
-        TASK_FAMILY = 'my-trade'  // Task Definition Name
-        CONTAINER_NAME = 'my-trade'   // Name of the container inside ECS task definition
+        TASK_FAMILY = 'my-trade'
+        CONTAINER_NAME = 'my-trade'
+        // FastAPI / uvicorn listen port (ALB target group must match)
+        APP_PORT = '8000'
     }
 
     stages {
@@ -31,7 +33,9 @@ pipeline {
                     ls -la
 
                     if [ -f backend/Dockerfile ]; then
-                      echo "Using backend/Dockerfile (full repo checkout)"
+                      echo "Using backend/Dockerfile (Python FastAPI)"
+                      test -f backend/requirements.txt
+                      test -d backend/app
                       docker build -t ${ECR_REPO}:latest -f backend/Dockerfile backend
                     elif [ -f Dockerfile ]; then
                       echo "Using ./Dockerfile (backend-only checkout)"
@@ -51,31 +55,51 @@ pipeline {
         stage('Register New Task Definition with Latest Image') {
             steps {
                 script {
-                    // Fetch the existing task definition
                     sh "aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition' > task-def.json"
 
-                    // Keep container port 5000 — ECS service / ALB is mapped to 5000
                     sh """
-                    jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
-                        .containerDefinitions[0].image = "${ECR_REPO}:latest" |
-                        .containerDefinitions[0].portMappings = [{"containerPort":5000,"hostPort":5000,"protocol":"tcp","name":"ai-path-5000-tcp","appProtocol":"http"}] |
-                        .containerDefinitions[0].environment |= map(if .name == "PORT" then .value = "5000" else . end)' task-def.json > new-task-def.json
+                    jq --arg img "${ECR_REPO}:latest" --arg port "${APP_PORT}" '
+                      del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
+                      | .containerDefinitions[0].image = \$img
+                      | .containerDefinitions[0].portMappings = [{
+                          "containerPort": (\$port|tonumber),
+                          "hostPort": (\$port|tonumber),
+                          "protocol": "tcp",
+                          "name": ("my-trade-" + \$port + "-tcp"),
+                          "appProtocol": "http"
+                        }]
+                      | .containerDefinitions[0].environment = (
+                          ((.containerDefinitions[0].environment // [])
+                            | map(select(.name != "PORT" and .name != "HOST" and .name != "APP_ENV")))
+                          + [
+                              {"name":"PORT","value":\$port},
+                              {"name":"HOST","value":"0.0.0.0"},
+                              {"name":"APP_ENV","value":"production"}
+                            ]
+                        )
+                    ' task-def.json > new-task-def.json
                     """
 
-                    // Register the updated task definition
                     sh "aws ecs register-task-definition --cli-input-json file://new-task-def.json"
                 }
             }
         }
 
-        stage('Update ECS Service with New Task Definition') {
+        stage('Update ECS Service with Latest Image') {
             steps {
                 script {
-                    def TASK_REVISION = sh(script: "aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition.revision' --output text", returnStdout: true).trim()
+                    def TASK_REVISION = sh(
+                        script: "aws ecs describe-task-definition --task-definition $TASK_FAMILY --query 'taskDefinition.revision' --output text",
+                        returnStdout: true
+                    ).trim()
                     echo "New Task Definition Revision: ${TASK_REVISION}"
 
                     sh """
-                    aws ecs update-service --cluster ${ECS_CLUSTER} --service ${ECS_SERVICE} --task-definition ${TASK_FAMILY}:${TASK_REVISION} --force-new-deployment
+                    aws ecs update-service \
+                      --cluster ${ECS_CLUSTER} \
+                      --service ${ECS_SERVICE} \
+                      --task-definition ${TASK_FAMILY}:${TASK_REVISION} \
+                      --force-new-deployment
                     """
                 }
             }
@@ -84,19 +108,14 @@ pipeline {
 
     post {
         success {
-            echo '✅ Backend Deployment Successful! 🎉'
-
-            // 🔥 Remove unused Docker images **immediately**
+            echo 'Backend Deployment Successful!'
             sh 'docker image prune -a -f'
-
-            // 🔥 Remove stopped containers
             sh 'docker container prune -f'
         }
         failure {
             echo 'Backend Deployment Failed!'
         }
         always {
-            // 🔄 Ensure unused volumes and networks are cleaned up
             sh 'docker system prune -f --volumes'
         }
     }
