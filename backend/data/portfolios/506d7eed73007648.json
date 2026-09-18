@@ -52,7 +52,7 @@
     "cash": 2000.01463527663,
     "savings": 0.0,
     "total_contributed": 40851.354914763615,
-    "peak": 40044.026782662964,
+    "peak": 40085.22013527153,
     "cb_tier": 0,
     "force_bear_budget": false,
     "liquidated_once": false,
@@ -1538,13 +1538,13 @@
         "regime": "bull",
         "budget": 2895.0,
         "deployed": 3151.55,
-        "portfolio_value": 40037.855897143934,
+        "portfolio_value": 40085.22013527153,
         "cash": 2000.01463527663,
         "savings": 0.0,
-        "daily_pnl": 1823.8625904904693,
+        "daily_pnl": 1871.2268286180624,
         "drawdown_pct": 0.060580957854975304,
-        "reserve_pct": 0.049953090405605347,
-        "peak": 40044.026782662964
+        "reserve_pct": 0.04989406640470936,
+        "peak": 40085.22013527153
       }
     ],
     "rule_flags": {
