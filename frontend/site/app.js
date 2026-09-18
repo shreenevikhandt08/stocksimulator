@@ -40,6 +40,8 @@ const UI_ICO = {
   moon: `<svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 14.5A7.5 7.5 0 0 1 9.5 4 6.5 6.5 0 1 0 20 14.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>`,
   login: `<svg class="ui-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 7V6a2 2 0 0 0-2-2H5v16h7a2 2 0 0 0 2-2v-1M10 12H20m0 0-3-3m3 3-3 3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   signup: `<svg class="ui-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" stroke="currentColor" stroke-width="1.75"/><path d="M4 20c1.8-3.2 4.6-5 8-5s6.2 1.8 8 5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>`,
+  eye: `<svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><circle cx="12" cy="12" r="2.75" stroke="currentColor" stroke-width="1.75"/></svg>`,
+  eyeOff: `<svg class="ui-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3l18 18M10.5 10.6a2.75 2.75 0 0 0 3.9 3.9M7.1 7.3C5.2 8.4 3.7 10.1 2.5 12c0 0 3.5 5.5 9.5 5.5 1.5 0 2.9-.3 4.1-.8M16.8 16.5c1.7-1 3.1-2.5 4.2-4.5 0 0-3.5-5.5-9.5-5.5-.8 0-1.5.1-2.2.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
 };
 
 function sidebarOpenPref() {
@@ -71,6 +73,7 @@ function navPageId(href) {
 }
 
 function pageLabel(page) {
+  if (page === "account") return "Account";
   const hit = NAV.find((item) => navPageId(item[0]) === page);
   return hit ? hit[1] : "Desk";
 }
@@ -91,17 +94,7 @@ function sidebarLinkHtml([href, label, icon], page) {
 }
 
 function sidebarNavHtml(page) {
-  return NAV_GROUPS.map((group, i) => `
-    <div class="sidebar-group${i === 0 ? " is-first" : ""}">
-      <div class="sidebar-subbar" role="presentation">
-        <span class="sidebar-subbar-line" aria-hidden="true"></span>
-        <p class="sidebar-group-label">${esc(group.label)}</p>
-        <span class="sidebar-subbar-line" aria-hidden="true"></span>
-      </div>
-      <div class="sidebar-group-links">
-        ${group.items.map((item) => sidebarLinkHtml(item, page)).join("")}
-      </div>
-    </div>`).join("");
+  return `<div class="sidebar-nav-list">${NAV.map((item) => sidebarLinkHtml(item, page)).join("")}</div>`;
 }
 
 function userInitial(user) {
@@ -689,17 +682,6 @@ function syncDeskInbox(meta) {
     });
   }
 
-  const risk = meta.risk_profile || {};
-  if (Number(meta.cb_tier) >= 2 || String(risk.band || "") === "aggressive") {
-    pushNotif({
-      id: `risk:${day}`,
-      kind: "alert",
-      title: "Risk check",
-      body: `Book risk is ${risk.band || "elevated"}${meta.cb_tier ? ` · circuit breaker tier ${meta.cb_tier}` : ""}. Review holdings before adding size.`,
-      href: "#/portfolio",
-    });
-  }
-
   (meta.day_trades || []).slice(0, 8).forEach((t, i) => {
     const ticker = String(t.ticker || "").toUpperCase();
     pushNotif({
@@ -840,41 +822,41 @@ function suggestionsPanelHtml(meta) {
 }
 
 function notifPanelHtml(meta) {
-  const items = notifList().filter((n) => n.kind !== "suggest" && !String(n.id).startsWith("opp:"));
+  const items = notifList().filter((n) => n.kind !== "suggest" && !String(n.id).startsWith("opp:") && !String(n.id).startsWith("risk:"));
   const unread = items.filter((n) => !n.read).length;
 
   const activity = items.length
-    ? `<ul class="notif-feed">${items.slice(0, 16).map((n) => {
+    ? `<ul class="notif-list">${items.slice(0, 14).map((n) => {
         const href = resolveNotifHref(n);
         const ticker = String(n.meta?.ticker || "").toUpperCase();
         return `
-      <li class="notif-feed-item ${n.read ? "" : "is-unread"} kind-${esc(n.kind)}" data-notif-id="${esc(n.id)}" data-notif-href="${esc(href)}" data-notif-ticker="${esc(ticker)}">
-        <div class="notif-feed-rail" aria-hidden="true"></div>
-        <div class="notif-feed-body">
-          <div class="notif-feed-meta">
-            <span class="notif-kind">${esc(notifKindLabel(n.kind))}</span>
-            <time>${esc(fmtNotifTime(n.ts))}</time>
-            <button type="button" class="notif-item-close" data-notif-dismiss="${esc(n.id)}" aria-label="Dismiss" title="Dismiss">×</button>
-          </div>
-          <strong>${esc(n.title)}</strong>
-          <p>${esc(n.body)}</p>
-          <div class="notif-item-actions">
-            ${n.kind === "action" && n.meta?.actionId ? `
-              <button type="button" class="btn btn-sm btn-buy" data-notif-approve="${esc(n.meta.actionId)}">Approve sell</button>
-              <button type="button" class="btn btn-sm btn-ghost" data-notif-reject="${esc(n.meta.actionId)}">Keep</button>` : ""}
-            <a class="link-quiet" href="${esc(href)}" data-notif-view="${esc(n.id)}">View</a>
-          </div>
+      <li class="notif-row ${n.read ? "is-read" : "is-unread"}" data-notif-id="${esc(n.id)}" data-notif-href="${esc(href)}" data-notif-ticker="${esc(ticker)}">
+        <div class="notif-row-top">
+          <span class="notif-tag kind-${esc(n.kind)}">${esc(notifKindLabel(n.kind))}</span>
+          <time>${esc(fmtNotifTime(n.ts))}</time>
+          <button type="button" class="notif-dismiss" data-notif-dismiss="${esc(n.id)}" aria-label="Dismiss">Dismiss</button>
+        </div>
+        <strong class="notif-row-title">${esc(n.title)}</strong>
+        <p class="notif-row-body">${esc(n.body)}</p>
+        <div class="notif-row-actions">
+          ${n.kind === "action" && n.meta?.actionId ? `
+            <button type="button" class="btn btn-sm btn-buy" data-notif-approve="${esc(n.meta.actionId)}">Approve sell</button>
+            <button type="button" class="btn btn-sm btn-ghost" data-notif-reject="${esc(n.meta.actionId)}">Keep</button>` : ""}
+          <a class="btn btn-sm btn-ghost" href="${esc(href)}" data-notif-view="${esc(n.id)}">Open</a>
         </div>
       </li>`;
       }).join("")}</ul>`
-    : `<p class="notif-empty">Inbox is quiet right now. Session notes, pauses, and rule sells land here.<br/><span class="muted">BUY / HOLD ideas are under the <strong>lightbulb</strong> · full checklist on <a href="#/rules">Rules</a>.</span></p>`;
+    : `<div class="notif-empty-card">
+        <strong>You're all caught up</strong>
+        <p>Rule sells, pauses, and session notes appear here. Ideas stay under the lightbulb.</p>
+      </div>`;
 
   return `
     <div class="notif-panel" id="notifPanel" hidden>
       <div class="notif-panel-hd">
         <div>
-          <strong>Notifications</strong>
-          <span class="tiny muted">${unread ? `${unread} unread` : "Caught up"}</span>
+          <strong>Alerts</strong>
+          <span class="tiny muted">${unread ? `${unread} unread` : "No unread"}</span>
         </div>
         <div class="notif-panel-tools">
           <button type="button" class="btn btn-sm btn-ghost" id="notifMarkRead">Mark read</button>
@@ -884,13 +866,10 @@ function notifPanelHtml(meta) {
           </button>
         </div>
       </div>
-      <div class="notif-stack">
-        <section class="notif-block">
-          <div class="notif-block-bd">${activity}</div>
-        </section>
-      </div>
+      <div class="notif-stack">${activity}</div>
     </div>`;
 }
+
 
 function fmtNotifTime(ts) {
   try {
@@ -1097,7 +1076,7 @@ function metricsBarPnlOnly(meta) {
 function topMetrics(meta, page) {
   // Capital/P&L detail lives on Portfolio. Trade has its own compact strip.
   // Dashboard owns analytics charts — no duplicate moneySummary here.
-  if (page === "home" || page === "research" || page === "trade" || page === "portfolio" || page === "backtest" || page === "rules") return "";
+  if (page === "home" || page === "research" || page === "trade" || page === "portfolio" || page === "backtest" || page === "rules" || page === "account") return "";
   return pnlStrip(meta);
 }
 
@@ -1302,8 +1281,10 @@ function bindHistoryTools() {
   apply();
 }
 
-function deskAlertsStrip(meta) {
+function deskAlertsStrip(meta, page = "") {
+  // Keep operational / risk alerts on Trade & Portfolio only
   if (!meta || meta.readonly) return "";
+  if (!["trade", "portfolio"].includes(String(page || ""))) return "";
   const bits = [];
   if (meta.paused) {
     bits.push({
@@ -1314,7 +1295,17 @@ function deskAlertsStrip(meta) {
       cta: "Open Trade",
     });
   }
-  if (meta.market_open === false) {
+  const risk = meta.risk_profile || {};
+  if (Number(meta.cb_tier) >= 2 || String(risk.band || "") === "aggressive") {
+    bits.push({
+      tone: "warn",
+      title: "Risk check",
+      body: `Book risk is ${risk.band || "elevated"}${meta.cb_tier ? ` · circuit breaker tier ${meta.cb_tier}` : ""}. Review size before adding.`,
+      href: "#/portfolio",
+      cta: "Open Portfolio",
+    });
+  }
+  if (meta.market_open === false && page === "trade") {
     bits.push({
       tone: "warn",
       title: meta.market_status === "preopen" ? "Pre-open" : meta.market_status === "weekend" ? "Weekend" : "Markets closed",
@@ -1333,35 +1324,7 @@ function deskAlertsStrip(meta) {
       cta: "Review sells",
     });
   }
-  const unread = unreadNotifCount();
-  const urgentInbox = notifList().filter((n) => !n.read && (n.kind === "alert" || n.kind === "action" || n.kind === "rules"));
-  if (!bits.length && urgentInbox.length) {
-    const top = urgentInbox[0];
-    bits.push({
-      tone: top.kind === "rules" ? "warn" : "bad",
-      title: top.title || "Desk alert",
-      body: top.body || "Open Alerts for details.",
-      href: top.href || "#/",
-      cta: "Open alerts",
-      openBell: true,
-    });
-  }
-  const buys = (meta.suggestions || []).filter((s) => String(s.verdict || "").toUpperCase() === "BUY").length;
-  const holds = (meta.suggestions || []).filter((s) => String(s.verdict || "").toUpperCase() === "HOLD").length
-    + (meta.alternatives || []).length;
-  if (!bits.length) {
-    bits.push({
-      tone: "ok",
-      title: unread ? `${unread} desk note${unread > 1 ? "s" : ""}` : "Desk clear",
-      body: pending.length
-        ? "Review pending sells on Trade."
-        : `${buys ? `${buys} BUY` : "No BUY"}${holds ? ` · ${holds} HOLD watch` : ""} · lightbulb = suggestions · bell = alerts`,
-      href: "#/trade",
-      cta: unread ? "Open alerts" : "Open suggestions",
-      openBell: !!unread,
-      openIdeas: !unread,
-    });
-  }
+  if (!bits.length) return "";
   return `
     <div class="desk-alerts" id="deskAlerts" role="region" aria-label="Desk warnings">
       ${bits.map((b) => `
@@ -1372,16 +1335,12 @@ function deskAlertsStrip(meta) {
             <span>${esc(b.body)}</span>
           </div>
           <div class="desk-alert-actions">
-            ${b.openBell
-              ? `<button type="button" class="btn btn-sm btn-primary" data-open-bell="1">${esc(b.cta || "Open alerts")}</button>`
-              : b.openIdeas
-                ? `<button type="button" class="btn btn-sm btn-primary" data-open-ideas="1">${esc(b.cta || "Suggestions")}</button>`
-                : `<a class="btn btn-sm btn-primary" href="${esc(b.href || "#/")}">${esc(b.cta || "View")}</a>`}
-            ${!b.openBell ? `<button type="button" class="btn btn-sm btn-ghost" data-open-bell="1">Alerts</button>` : `<button type="button" class="btn btn-sm btn-ghost" data-open-ideas="1">Ideas</button>`}
+            <a class="btn btn-sm btn-primary" href="${esc(b.href || "#/")}">${esc(b.cta || "View")}</a>
           </div>
         </div>`).join("")}
     </div>`;
 }
+
 
 
 function shell(inner, meta) {
@@ -1406,7 +1365,7 @@ function shell(inner, meta) {
       : marketClosed
         ? "Market closed"
         : meta?.live?.live
-          ? `Live · ${esc(meta.live.source || "yahoo")}`
+          ? "Live"
           : "Connecting";
   const sbOpen = sidebarOpenPref();
   return `
@@ -1430,14 +1389,7 @@ function shell(inner, meta) {
               <span class="sidebar-user-role">Signed in</span>
             </div>
           </div>
-          <button type="button" class="sidebar-logout" id="logoutBtnSidebar" title="Sign out">
-            <span class="sidebar-ico" aria-hidden="true">${NAV_ICO.logout}</span>
-            <span class="sidebar-logout-lbl">Sign out</span>
-          </button>
-        ` : `<a class="sidebar-login" href="#/login" title="Sign in">
-            <span class="sidebar-ico" aria-hidden="true">${UI_ICO.login}</span>
-            <span class="sidebar-logout-lbl">Sign in</span>
-          </a>`}
+        ` : `<a class="sidebar-login" href="#/login" title="Sign in">Sign in</a>`}
       </div>
     </aside>
     <div class="desk-main-col">
@@ -1464,6 +1416,7 @@ function shell(inner, meta) {
           <span class="pill ${ro || marketClosed || !meta?.live?.live ? "off" : "live"}" id="liveChip">${chip}</span>
         </div>
         <div class="hdr-cluster hdr-cluster-tools">
+          <button type="button" class="btn btn-icon hdr-tool-btn" id="themeBtn" aria-label="Toggle theme" title="${theme() === "dark" ? "Switch to light" : "Switch to dark"}">${theme() === "dark" ? UI_ICO.sun : UI_ICO.moon}</button>
           <div class="notif-wrap ideas-wrap">
             <button class="btn btn-icon ideas-bell" id="ideasBell" type="button" aria-label="Suggestions" title="Suggestions">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10c.8.7 1.2 1.4 1.4 2.5h5.2c.2-1.1.6-1.8 1.4-2.5A6 6 0 0 0 12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1477,15 +1430,42 @@ function shell(inner, meta) {
             </button>
             ${notifPanelHtml(meta)}
           </div>
-          <button class="btn btn-icon hdr-tool-btn" id="themeBtn" type="button" aria-label="Toggle theme">${theme() === "dark" ? UI_ICO.sun : UI_ICO.moon}</button>
-          ${authUser() ? `<button class="btn btn-sm btn-ghost hdr-logout-mobile" id="logoutBtn" type="button">Sign out</button>` : `<a class="btn btn-sm btn-ghost hdr-login-mobile" href="#/login">Sign in</a>`}
+          ${authUser() ? `
+            <a class="hdr-profile-chip${page === "account" ? " is-active" : ""}" href="#/account" title="Account profile">
+              <span class="hdr-user-avatar" aria-hidden="true">${esc(userInitial(authUser()))}</span>
+              <span class="hdr-user-copy">
+                <strong class="hdr-user-name">${esc(authUser().name || authUser().username || "User")}</strong>
+                <em class="hdr-user-status">Profile</em>
+              </span>
+            </a>
+            <div class="hdr-settings-wrap" id="hdrSettingsWrap">
+              <button type="button" class="btn btn-icon hdr-tool-btn hdr-settings-btn" id="hdrSettingsBtn" aria-expanded="false" aria-haspopup="true" title="Settings">⚙️</button>
+              <div class="hdr-settings-panel" id="hdrSettingsPanel" hidden>
+                <div class="hdr-settings-hd">
+                  <strong>Settings</strong>
+                  <span>${esc(authUser().email || authUser().username || "")}</span>
+                </div>
+                <div class="hdr-settings-section">
+                  <a class="hdr-settings-row hdr-settings-row-ok" href="#/account">
+                    <span>Account details</span>
+                    <em>Edit</em>
+                  </a>
+                  <a class="hdr-settings-row" href="#/rules">
+                    <span>Desk rules</span>
+                    <em>Open</em>
+                  </a>
+                </div>
+                <button type="button" class="hdr-settings-logout" id="logoutBtn">Sign out</button>
+              </div>
+            </div>
+          ` : `<a class="btn btn-sm btn-ghost hdr-login-btn" href="#/login">Sign in</a>`}
         </div>
       </div>
     </header>
     ${stickyMetrics ? metrics : ""}
     </div>
     <div class="main">
-      ${deskAlertsStrip(meta)}
+      ${deskAlertsStrip(meta, page)}
       ${ro ? `<div class="history-banner past-banner">
         <div class="past-banner-copy">
           <strong>Past session · ${esc(fmtDate(meta?.view_date))}</strong>
@@ -1586,6 +1566,31 @@ function backupPicksPanel(list, { trade = false } = {}) {
     </div>`;
 }
 
+function tradeBudgetRulesHtml(d) {
+  const fridayCap = Math.round(Number(d.friday_cap) || 5000);
+  const regimeBudget = Math.round(Number(d.regime_budget) || Number(d.recommended_amount) || 10000);
+  const dailyTarget = Math.round(Number(d.recommended_amount) || 10000);
+  const reservePct = Math.round((Number(d.reserve_target) || 0.05) * 100);
+  const openHH = d.market_hours?.open || d.open || "09:15";
+  const closeHH = d.market_hours?.close || d.close || "15:30";
+  const status = String(d.market_status || "");
+  const isFri = !!d.friday;
+  const closed = d.market_open === false;
+  return `
+    <div class="trade-rules-card">
+      <p class="trade-rules-kicker">Boss invest rules</p>
+      <ul class="trade-rules-list">
+        <li><strong>Market hours</strong> — buys only while NSE is open (${esc(openHH)}–${esc(closeHH)} IST, Mon–Fri). Weekends / holidays / after-hours = locked.</li>
+        <li><strong>Daily ceiling</strong> — regime budget about ${inr(regimeBudget)}${isFri && !closed ? ` · <em>Friday cap ${inr(fridayCap)}</em> applies today (not ${inr(regimeBudget)})` : ` · Fridays capped at ${inr(fridayCap)}`}.</li>
+        <li><strong>Today’s deploy cap</strong> — ${closed ? "N/A while closed" : inr(dailyTarget)} total you may deploy this open session.</li>
+        <li><strong>Cash reserve</strong> — keep ~${reservePct}% of portfolio value in cash; Max safe is after that reserve.</li>
+      </ul>
+      ${closed ? `<p class="trade-rules-closed">${esc(d.market_note || "Investing unlocks on the next open session — the Friday ₹5,000 cap is not a weekend allowance.")}</p>` : ""}
+      ${!closed && isFri ? `<p class="trade-rules-friday">Friday rule is on: you can invest up to <strong>${inr(fridayCap)}</strong> today, not the usual ${inr(regimeBudget)}.</p>` : ""}
+      ${status === "weekend" ? `<p class="trade-rules-closed">Weekend: no ₹5,000 / ₹10,000 invest — that ceiling only applies when the market is open.</p>` : ""}
+    </div>`;
+}
+
 function tradeInvestPanel(d, { trade, hint }) {
   const p = d.pnl || {};
   const today = Number(p.today) || 0;
@@ -1597,10 +1602,13 @@ function tradeInvestPanel(d, { trade, hint }) {
   const maxDeploy = Math.max(0, Math.min(maxDeployRaw, remainDeploy || maxDeployRaw));
   const remainContrib = Math.max(0, Math.round(Number(d.remaining_daily_budget) || 0));
   const reservePct = Math.round((Number(d.reserve_target) || 0.05) * 100);
+  const fridayCap = Math.round(Number(d.friday_cap) || 5000);
+  const regimeBudget = Math.round(Number(d.regime_budget) || dailyTarget);
   const budgetDone = remainDeploy < 50 && usedDeploy > 0;
   const reserveLocked = !budgetDone && maxDeploy < 50;
   const partiallyUsed = !budgetDone && !reserveLocked && usedDeploy > 0;
   const defaultAmt = budgetDone || reserveLocked ? 0 : Math.max(1, maxDeploy || 1);
+  const rules = tradeBudgetRulesHtml(d);
   if (d.readonly) {
     const book = Number(d.pnl?.book ?? d.portfolio ?? 0) || 0;
     const pnl = Number(d.pnl?.today ?? d.daily_pnl ?? 0) || 0;
@@ -1624,14 +1632,21 @@ function tradeInvestPanel(d, { trade, hint }) {
       <p class="muted">${esc(d.pause_reason || "Drawdown circuit breaker is active.")} Unlocks <strong>${esc(until)}</strong>.</p>
       <button class="btn btn-buy btn-block" id="resumeBuying" type="button">Resume buying</button>
       <a class="btn btn-ghost btn-block" href="#/portfolio">See portfolio</a>
+      ${rules}
     </div>`;
   }
   if (d.market_open === false) {
+    const status = String(d.market_status || "");
+    const title = status === "weekend" ? "Weekend — markets closed"
+      : status === "preopen" ? "Pre-open — investing locked"
+      : "Markets closed for the day";
     return `<div class="trade-invest-card trade-invest-readonly trade-invest-closed">
-      <p class="trade-invest-eyebrow">Weekend / holiday</p>
-      <p class="trade-invest-title">Markets closed</p>
+      <p class="trade-invest-eyebrow">Market hours rule</p>
+      <p class="trade-invest-title">${esc(title)}</p>
       <p class="muted">${esc(d.market_note || "Invest unlocks on the next open session.")}</p>
+      <p class="trade-closed-cap muted">You cannot invest ₹${(status === "weekend" ? fridayCap : dailyTarget).toLocaleString("en-IN")} while closed — ${status === "weekend" ? `the Friday ${inr(fridayCap)} cap is not a weekend allowance` : `session budget ${inr(dailyTarget)} waits until the next open`}.</p>
       <a class="btn btn-primary btn-block" href="#/">Back to Dashboard</a>
+      ${rules}
     </div>`;
   }
   return `
@@ -1643,15 +1658,23 @@ function tradeInvestPanel(d, { trade, hint }) {
           <p class="tis-meta">Cash on hand</p>
           <p class="tis-meta tis-meta-caps">
             Investable now <strong class="mono">${inr(maxDeploy)}</strong>
-            · daily ceiling left <strong class="mono">${inr(remainDeploy)}</strong>${budgetDone ? " · budget used" : ""}
+            · daily ceiling left <strong class="mono">${inr(remainDeploy)}</strong>${budgetDone ? " · budget used" : ""}${d.friday ? ` · Friday cap ${inr(fridayCap)}` : ""}
           </p>
         </div>
         <div class="tis-today mono ${tone(today)}">${signed(today)} <span>today</span></div>
       </div>
+      ${d.friday ? `<p class="tis-banner tis-banner-friday">Friday rule: daily ceiling is <strong>${inr(dailyTarget)}</strong> (Friday cap ${inr(fridayCap)}), not the usual ${inr(regimeBudget)}.</p>` : ""}
       ${budgetDone ? `<p class="tis-banner">Daily budget used (${inr(usedDeploy)} / ${inr(dailyTarget)}). Come back next open day.</p>`
-        : reserveLocked ? `<p class="tis-banner tis-banner-lock">Already invested ${inr(usedDeploy)}. Your remaining cash is the required ${reservePct}% reserve — investable now is <strong>₹0</strong>. Daily ceiling still shows ${inr(remainDeploy)} left, but that needs cash above the reserve (or a fresh contribution next session${remainContrib < 50 ? "" : ` · contrib room ${inr(remainContrib)}`}).</p>`
+        : reserveLocked && remainContrib < 50 ? `<div class="tis-banner tis-banner-lock tis-boss-brief">
+            <strong>Boss brief — cash reserve lock</strong>
+            <p>Rule: keep ${reservePct}% of portfolio in cash (~${inr(Math.round(Number(d.reserve_floor) || cash || 0))}). Cash on hand is already that reserve, and today's contribution room is used.</p>
+            <p>Daily ceiling left (${inr(remainDeploy)}) is <em>not</em> spendable without cash above the reserve. Next open session: contribute, then deploy.</p>
+            <p class="tis-boss-say">What to tell your boss: “Deploy paused by the 5% cash-reserve rule — not by market hours. Ceiling remains ${inr(remainDeploy)}; we need fresh contribution next session to invest above the reserve.”</p>
+          </div>`
+        : reserveLocked ? `<p class="tis-banner tis-banner-lock">Cash on hand is the ${reservePct}% reserve. Use <strong>Max safe</strong> — the desk will contribute from today's room (${inr(remainContrib)}) so you can still invest.</p>`
         : partiallyUsed ? `<p class="tis-banner">Already invested ${inr(usedDeploy)}. You can still invest up to <strong>${inr(maxDeploy)}</strong> (Max safe). Daily ceiling left ${inr(remainDeploy)}.</p>`
         : maxDeploy + 1 < remainDeploy ? `<p class="tis-banner">Daily ceiling is ${inr(remainDeploy)}, but Max safe is ${inr(maxDeploy)} — ${reservePct}% cash must stay reserved.</p>`
+        : !d.friday && dailyTarget >= 9999 && maxDeploy + 1 < 10000 ? `<p class="tis-banner">Want ${inr(10000)}? Max safe is ${inr(maxDeploy)} after the ${reservePct}% reserve / cash on hand.</p>`
         : ""}
       <label class="tis-label" for="amt">Amount (₹)</label>
       <div class="trade-invest-amt-row">
@@ -1674,6 +1697,7 @@ function tradeInvestPanel(d, { trade, hint }) {
         : reserveLocked
           ? `Session done for buys — remaining cash holds the ${reservePct}% reserve (~${inr(Math.round(Number(d.pnl?.wealth || d.mtm || 0) * (Number(d.reserve_target) || 0.05)))}). Come back next open day to add & deploy more.`
           : `Investable now is ${inr(maxDeploy)} after the ${reservePct}% reserve. Daily ceiling (${inr(remainDeploy)}) is not extra cash.`}</p>
+      ${rules}
     </div>`;
 }
 
@@ -2704,7 +2728,7 @@ function multiLiveChartSvg(snap, tickers) {
     if (raw.length < 2) return;
     const base = raw[0] || 1;
     const norm = raw.map((v) => ((v / base) - 1) * 100);
-    series.push({ t, color: CHART_COLORS[i % CHART_COLORS.length], pts: norm, last: raw[raw.length - 1], chg: Number(snap?.quotes?.[t]?.chg_pct) || 0 });
+    series.push({ t, color: CHART_COLORS[i % CHART_COLORS.length], pts: norm, raw, last: raw[raw.length - 1], chg: Number(snap?.quotes?.[t]?.chg_pct) || 0 });
   });
   if (!series.length) {
     return `<div class="live-chart-empty">Waiting for live marks…</div>`;
@@ -2722,8 +2746,11 @@ function multiLiveChartSvg(snap, tickers) {
     const d = s.pts.map((v, i) => `${i ? "L" : "M"}${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(" ");
     return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>`;
   }).join("");
+  const dots = series.map((s, si) =>
+    `<circle class="live-chart-dot" data-series-i="${si}" cx="0" cy="0" r="4.5" fill="${s.color}" opacity="0"/>`
+  ).join("");
   const legend = series.map((s) => `
-    <button type="button" class="live-chart-leg" data-chart-toggle="${esc(s.t)}" style="--c:${s.color}">
+    <button type="button" class="live-chart-leg" data-chart-toggle="${esc(s.t)}" data-live-ticker="${esc(s.t)}" style="--c:${s.color}" title="Click to toggle · hover for details">
       <i></i><strong class="mono">${esc(s.t)}</strong>
       <span class="mono ${s.chg >= 0 ? "up" : "down"}">${chgLabel(s.chg)}</span>
     </button>`).join("");
@@ -2733,13 +2760,22 @@ function multiLiveChartSvg(snap, tickers) {
     return `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="var(--line)" stroke-width="1"/>
       <text x="${padL - 8}" y="${y + 4}" text-anchor="end" class="live-chart-axis">${val >= 0 ? "+" : ""}${val.toFixed(1)}%</text>`;
   }).join("");
+  const payload = encodeURIComponent(JSON.stringify(series.map((s) => ({
+    t: s.t, color: s.color, pts: s.pts, raw: s.raw, chg: s.chg, last: s.last,
+  }))));
   return `
-    <div class="live-chart-wrap">
+    <div class="live-chart-wrap" data-live-chart="1" data-chart-n="${n}" data-chart-pad-l="${padL}" data-chart-pad-r="${padR}" data-chart-w="${w}" data-chart-series="${payload}">
       <svg class="live-chart-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Live multi-ticker price chart">
         ${grid}
         <line x1="${padL}" y1="${zeroY}" x2="${w - padR}" y2="${zeroY}" stroke="var(--text-faint)" stroke-width="1" stroke-dasharray="4 4"/>
         ${paths}
+        <g class="live-chart-hover" opacity="0" pointer-events="none">
+          <line class="live-chart-vline" x1="0" y1="${padT}" x2="0" y2="${h - padB}" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="3 3"/>
+          ${dots}
+        </g>
+        <rect class="live-chart-hit" x="${padL}" y="${padT}" width="${w - padL - padR}" height="${h - padT - padB}" fill="transparent" tabindex="0"/>
       </svg>
+      <div class="live-chart-tip" id="liveChartTip" hidden></div>
       <div class="live-chart-legend" id="liveChartLegend">${legend}</div>
     </div>`;
 }
@@ -2748,16 +2784,217 @@ function paintLiveChart(snap) {
   const host = document.getElementById("liveChartHost");
   if (!host) return;
   seedLiveSparks(snap);
+  if (snap) window.__liveSnap = snap;
   const tickers = pickChartTickers(snap, 6);
   host.innerHTML = multiLiveChartSvg(snap, tickers);
   host.querySelectorAll("[data-chart-toggle]").forEach((btn) => {
-    btn.onclick = () => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
       const t = btn.dataset.chartToggle;
       const cur = window.__chartSeries || [];
       if (cur.includes(t) && cur.length > 1) window.__chartSeries = cur.filter((x) => x !== t);
       else if (!cur.includes(t)) window.__chartSeries = [...cur, t].slice(0, 8);
-      paintLiveChart(snap);
+      paintLiveChart(snap || window.__liveSnap);
     };
+  });
+  bindLiveChartHover(host);
+  bindLiveQuoteDetails(host);
+}
+
+function liveQuoteSnapshot(ticker) {
+  const t = String(ticker || "").toUpperCase();
+  const q = window.__liveSnap?.quotes?.[t] || {};
+  const spark = window.__liveSparks?.[t] || [];
+  const price = Number(q.price) || Number(spark[spark.length - 1]) || 0;
+  const prev = Number(q.prev) || (spark.length > 1 ? spark[spark.length - 2] : price) || 0;
+  const chg = Number(q.chg_pct);
+  const chgPct = Number.isFinite(chg) ? chg : (prev ? ((price - prev) / prev) * 100 : 0);
+  const dayHigh = spark.length ? Math.max(...spark) : price;
+  const dayLow = spark.length ? Math.min(...spark) : price;
+  return {
+    ticker: t,
+    price,
+    prev,
+    chgPct,
+    dayHigh,
+    dayLow,
+    source: q.source || "",
+    ts: q.ts || 0,
+    sparkN: spark.length,
+  };
+}
+
+function liveQuoteDetailHtml(info) {
+  if (!info?.ticker) return "";
+  const up = info.chgPct >= 0;
+  return `
+    <div class="live-qtip-hd">
+      <strong class="mono">${esc(info.ticker)}</strong>
+      <span class="mono ${up ? "up" : "down"}">${chgLabel(info.chgPct)}</span>
+    </div>
+    <div class="live-qtip-grid">
+      <div><em>Last</em><strong class="mono">${inr(info.price, 2)}</strong></div>
+      <div><em>Prev tick</em><strong class="mono">${inr(info.prev, 2)}</strong></div>
+      <div><em>Session high*</em><strong class="mono">${inr(info.dayHigh, 2)}</strong></div>
+      <div><em>Session low*</em><strong class="mono">${inr(info.dayLow, 2)}</strong></div>
+    </div>
+    <p class="live-qtip-foot">${info.ts ? `As of ${esc(fmtTickTime(info.ts))}` : "Live mark"}${info.sparkN ? ` · ${info.sparkN} points in window` : ""} · *from live window</p>
+    <a class="btn btn-sm btn-ghost live-qtip-link" href="#/research/${esc(info.ticker)}">Open research</a>`;
+}
+
+function ensureLiveQuoteTip() {
+  let tip = document.getElementById("liveQuoteTip");
+  if (tip) return tip;
+  tip = document.createElement("div");
+  tip.id = "liveQuoteTip";
+  tip.className = "live-quote-tip";
+  tip.hidden = true;
+  document.body.appendChild(tip);
+  return tip;
+}
+
+function hideLiveQuoteTip() {
+  const tip = document.getElementById("liveQuoteTip");
+  if (!tip) return;
+  tip.hidden = true;
+  tip.classList.remove("is-open");
+}
+
+function showLiveQuoteTip(anchor, ticker, { pin = false } = {}) {
+  const info = liveQuoteSnapshot(ticker);
+  if (!info.price) return;
+  const tip = ensureLiveQuoteTip();
+  tip.innerHTML = liveQuoteDetailHtml(info);
+  tip.hidden = false;
+  tip.classList.add("is-open");
+  tip.dataset.pin = pin ? "1" : "0";
+  tip.dataset.ticker = info.ticker;
+  const r = anchor.getBoundingClientRect();
+  const tw = tip.offsetWidth || 260;
+  const th = tip.offsetHeight || 160;
+  let left = r.left + window.scrollX + (r.width / 2) - (tw / 2);
+  let top = r.bottom + window.scrollY + 8;
+  left = Math.max(12 + window.scrollX, Math.min(left, window.scrollX + window.innerWidth - tw - 12));
+  if (top + th > window.scrollY + window.innerHeight - 12) {
+    top = r.top + window.scrollY - th - 8;
+  }
+  tip.style.left = `${left}px`;
+  tip.style.top = `${top}px`;
+}
+
+function bindLiveQuoteDetails(root = document) {
+  const scope = root || document;
+  scope.querySelectorAll("[data-live-ticker]").forEach((el) => {
+    if (el.dataset.liveBound === "1") return;
+    el.dataset.liveBound = "1";
+    el.addEventListener("mouseenter", () => {
+      if (document.getElementById("liveQuoteTip")?.dataset.pin === "1") return;
+      showLiveQuoteTip(el, el.dataset.liveTicker, { pin: false });
+    });
+    el.addEventListener("mouseleave", () => {
+      if (document.getElementById("liveQuoteTip")?.dataset.pin === "1") return;
+      hideLiveQuoteTip();
+    });
+    el.addEventListener("click", (e) => {
+      // Chips / legend still toggle series — show pinned tip too
+      if (el.matches(".live-series-chip, .live-chart-leg")) {
+        showLiveQuoteTip(el, el.dataset.liveTicker, { pin: true });
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const tip = document.getElementById("liveQuoteTip");
+      const open = tip && !tip.hidden && tip.dataset.ticker === el.dataset.liveTicker && tip.dataset.pin === "1";
+      if (open) hideLiveQuoteTip();
+      else showLiveQuoteTip(el, el.dataset.liveTicker, { pin: true });
+    });
+  });
+  if (!window.__liveTipOutside) {
+    window.__liveTipOutside = (e) => {
+      const tip = document.getElementById("liveQuoteTip");
+      if (!tip || tip.hidden || tip.dataset.pin !== "1") return;
+      if (tip.contains(e.target)) return;
+      if (e.target.closest?.("[data-live-ticker]")) return;
+      hideLiveQuoteTip();
+    };
+    document.addEventListener("click", window.__liveTipOutside);
+  }
+}
+
+function bindLiveChartHover(host) {
+  const wrap = host?.querySelector("[data-live-chart]");
+  const svg = wrap?.querySelector(".live-chart-svg");
+  const hit = wrap?.querySelector(".live-chart-hit");
+  const hover = wrap?.querySelector(".live-chart-hover");
+  const tip = wrap?.querySelector(".live-chart-tip");
+  if (!wrap || !svg || !hit || !hover || !tip) return;
+  let series = [];
+  try { series = JSON.parse(decodeURIComponent(wrap.dataset.chartSeries || "%5B%5D")); } catch { series = []; }
+  const n = Number(wrap.dataset.chartN) || 0;
+  const padL = Number(wrap.dataset.chartPadL) || 44;
+  const padR = Number(wrap.dataset.chartPadR) || 16;
+  const w = Number(wrap.dataset.chartW) || 920;
+  const plotW = w - padL - padR;
+  const vline = hover.querySelector(".live-chart-vline");
+  const dots = [...hover.querySelectorAll(".live-chart-dot")];
+
+  const hide = () => {
+    hover.setAttribute("opacity", "0");
+    tip.hidden = true;
+  };
+  const showAt = (clientX) => {
+    const rect = svg.getBoundingClientRect();
+    const xSvg = ((clientX - rect.left) / Math.max(rect.width, 1)) * w;
+    const i = Math.round(((xSvg - padL) / Math.max(plotW, 1)) * Math.max(n - 1, 1));
+    const idx = Math.max(0, Math.min(n - 1, i));
+    const x = padL + (idx / Math.max(n - 1, 1)) * plotW;
+    vline?.setAttribute("x1", String(x));
+    vline?.setAttribute("x2", String(x));
+    const rows = series.map((s, si) => {
+      const raw = s.raw || [];
+      const pts = s.pts || [];
+      const j = Math.min(idx, Math.max(raw.length, pts.length) - 1);
+      const px = Number(raw[j]) || 0;
+      const pct = Number(pts[j]) || 0;
+      const all = series.flatMap((x) => x.pts || []);
+      let min = Math.min(...all, -0.5);
+      let max = Math.max(...all, 0.5);
+      if (Math.abs(max - min) < 0.4) { min -= 0.5; max += 0.5; }
+      const span = max - min || 1;
+      const padT = 18, padB = 28, hh = 320;
+      const pathY = padT + (1 - (pct - min) / span) * (hh - padT - padB);
+      const dot = dots[si];
+      if (dot && px > 0) {
+        dot.setAttribute("cx", String(x));
+        dot.setAttribute("cy", String(pathY));
+        dot.setAttribute("opacity", "1");
+      } else if (dot) {
+        dot.setAttribute("opacity", "0");
+      }
+      if (!(px > 0)) return null;
+      return `<div class="live-chart-tip-row" style="--c:${esc(s.color)}">
+        <i></i><strong class="mono">${esc(s.t)}</strong>
+        <span class="mono">${inr(px, 2)}</span>
+        <em class="mono ${pct >= 0 ? "up" : "down"}">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</em>
+      </div>`;
+    }).filter(Boolean);
+    if (!rows.length) { hide(); return; }
+    hover.setAttribute("opacity", "1");
+    tip.innerHTML = `<p class="live-chart-tip-kicker">Point ${idx + 1} / ${n}</p>${rows.join("")}`;
+    tip.hidden = false;
+    const tipW = tip.offsetWidth || 200;
+    const leftPct = ((x / w) * 100);
+    tip.style.left = `${Math.max(8, Math.min((leftPct / 100) * rect.width - tipW / 2, rect.width - tipW - 8))}px`;
+    tip.style.top = `12px`;
+  };
+
+  hit.addEventListener("mousemove", (e) => showAt(e.clientX));
+  hit.addEventListener("mouseleave", hide);
+  hit.addEventListener("click", (e) => {
+    e.preventDefault();
+    showAt(e.clientX);
+    // Also pin the primary series tip if only one
+    if (series.length === 1) showLiveQuoteTip(hit, series[0].t, { pin: true });
   });
 }
 
@@ -2777,13 +3014,14 @@ function liveTapePanel(snap, meta = null) {
   const closeLbl = hours.close || "15:30";
   const statusPill = afterHours
     ? `<span class="pill off" id="liveTapeStatus">${status === "preopen" ? `Pre-open · opens ${openLbl}` : status === "weekend" ? "Weekend · frozen" : `After hours · closed ${closeLbl}`}</span>`
-    : `<span class="pill ${snap?.live ? "live" : "off"}" id="liveTapeStatus">${snap?.live ? `Live · ${esc(snap.source || "yahoo")}` : "Connecting…"}</span>`;
+    : `<span class="pill ${snap?.live ? "live" : "off"}" id="liveTapeStatus">${snap?.live ? "Live" : "Connecting…"}</span>`;
   const chips = (rows.length ? rows : LIVE_SEED.map((t) => [t, { chg_pct: 0 }])).slice(0, 12).map(([t, q]) => {
     const on = (window.__chartSeries || []).includes(t);
     const pct = Number(q.chg_pct) || 0;
-    return `<button type="button" class="live-series-chip${on ? " on" : ""}" data-series="${esc(t)}">
+    const px = Number(q.price) || 0;
+    return `<button type="button" class="live-series-chip${on ? " on" : ""}" data-series="${esc(t)}" data-live-ticker="${esc(t)}" title="${esc(t)} · ${px ? inr(px, 2) : "…"} · hover or click for details">
       <span class="mono">${esc(t)}</span>
-      <span class="mono ${pct >= 0 ? "up" : "down"}">${Number(q.price) > 0 ? chgLabel(pct) : "…"}</span>
+      <span class="mono ${pct >= 0 ? "up" : "down"}">${px ? chgLabel(pct) : "…"}</span>
     </button>`;
   }).join("");
   return `
@@ -2793,8 +3031,8 @@ function liveTapePanel(snap, meta = null) {
           <p class="live-tape-kicker">${afterHours ? "Session marks" : "Live feed"}</p>
           <h2 class="live-tape-title">Live prices</h2>
           <p class="live-tape-sub">${afterHours
-            ? `NSE cash session closed (${openLbl}–${closeLbl} IST). One chart · multiple names · % from series start.`
-            : "One chart · multiple live series (normalized % from start of window). Tap chips to add/remove names."}</p>
+            ? `NSE cash session closed (${openLbl}–${closeLbl} IST). Hover or click a name / tick for details.`
+            : "Hover or click chips, chart, or recent ticks for price details. Tap chips to add/remove names on the chart."}</p>
         </div>
         <div class="live-tape-meta">
           ${statusPill}
@@ -2812,6 +3050,7 @@ function liveTapePanel(snap, meta = null) {
 }
 
 function bindLiveChartChips(snap) {
+  if (snap) window.__liveSnap = snap;
   document.getElementById("liveSeriesChips")?.querySelectorAll("[data-series]").forEach((btn) => {
     btn.onclick = () => {
       const t = btn.dataset.series;
@@ -2826,9 +3065,11 @@ function bindLiveChartChips(snap) {
       document.querySelectorAll("#liveSeriesChips [data-series]").forEach((b) => {
         b.classList.toggle("on", cur.includes(b.dataset.series));
       });
-      paintLiveChart(snap || { quotes: {}, sparks: window.__liveSparks });
+      paintLiveChart(snap || window.__liveSnap || { quotes: {}, sparks: window.__liveSparks });
+      showLiveQuoteTip(btn, t, { pin: true });
     };
   });
+  bindLiveQuoteDetails(document.getElementById("liveTape") || document);
 }
 
 function pushLiveFeed(ticker, price, prev, chgPct, ts) {
@@ -2847,13 +3088,14 @@ function pushLiveFeed(ticker, price, prev, chgPct, ts) {
   const feed = document.getElementById("liveTapeFeed");
   if (!feed) return;
   feed.innerHTML = window.__liveFeed.map((m) => `
-    <li class="${m.up ? "up" : "down"}">
+    <li class="${m.up ? "up" : "down"}" data-live-ticker="${esc(m.t)}" role="button" tabindex="0" title="Click for details">
       <span class="mono">${esc(m.t)}</span>
       <span class="mono">${m.up ? "▲" : "▼"} ${inr(Math.abs(m.delta), 2)}</span>
       <span class="mono">${inr(m.price, 2)}</span>
       <span class="mono ${m.up ? "up" : "down"}">${chgLabel(m.chg)}</span>
       <time class="mono">${fmtTickTime(m.at)}</time>
     </li>`).join("");
+  bindLiveQuoteDetails(feed);
 }
 
 function renderLiveTapeRows(snap) {
@@ -2869,7 +3111,7 @@ function renderLiveTapeRows(snap) {
       chips.innerHTML = rows.map(([t, q]) => {
         const on = (window.__chartSeries || []).includes(t);
         const pct = Number(q.chg_pct) || 0;
-        return `<button type="button" class="live-series-chip${on ? " on" : ""}" data-series="${esc(t)}">
+        return `<button type="button" class="live-series-chip${on ? " on" : ""}" data-series="${esc(t)}" data-live-ticker="${esc(t)}" title="${esc(t)} · ${inr(Number(q.price) || 0, 2)}">
           <span class="mono">${esc(t)}</span>
           <span class="mono ${pct >= 0 ? "up" : "down"}">${chgLabel(pct)}</span>
         </button>`;
@@ -2881,6 +3123,7 @@ function renderLiveTapeRows(snap) {
 
 function applyQuotes(snap) {
   if (viewDate || !snap) return;
+  window.__liveSnap = snap;
   const afterHours = !!snap.paused
     || deskMeta?.market_open === false
     || ["closed", "weekend", "preopen"].includes(String(deskMeta?.market_status || ""))
@@ -2896,13 +3139,13 @@ function applyQuotes(snap) {
       chip.textContent = "Paused · after hours";
       chip.className = "pill off";
     } else {
-      chip.textContent = snap.live ? `Live · ${snap.source || "yahoo"}` : (snap.error ? "Offline" : "Connecting");
+      chip.textContent = snap.live ? "Live" : (snap.error ? "Offline" : "Connecting");
       chip.className = `pill ${snap.live ? "live" : "off"}`;
     }
   }
   const status = document.getElementById("liveTapeStatus");
   if (status && !afterHours) {
-    status.textContent = snap.live ? `Live · ${snap.source || "yahoo"}` : (snap.error ? `Offline · ${snap.error}` : "Connecting…");
+    status.textContent = snap.live ? "Live" : (snap.error ? `Offline · ${snap.error}` : "Connecting…");
     status.className = `pill ${snap.live ? "live" : "off"}`;
   }
 
@@ -3199,6 +3442,7 @@ function bindIdeasPanel(meta) {
     nPanel?.classList.remove("is-open");
     nWrap?.classList.remove("is-open");
     document.getElementById("notifBell")?.setAttribute("aria-expanded", "false");
+    window.__closeHdrSettings?.();
     panel.removeAttribute("hidden");
     panel.classList.add("is-open");
     wrap.classList.add("is-open");
@@ -3235,6 +3479,352 @@ function bindIdeasPanel(meta) {
   bindPendingActions();
 }
 
+function bindHdrSettings({ onLogout } = {}) {
+  const wrap = document.getElementById("hdrSettingsWrap");
+  const btn = document.getElementById("hdrSettingsBtn");
+  const panel = document.getElementById("hdrSettingsPanel");
+  if (!wrap || !btn || !panel) {
+    document.getElementById("logoutBtn")?.addEventListener("click", () => onLogout?.());
+    return;
+  }
+
+  const isOpen = () => wrap.classList.contains("is-open");
+
+  const close = () => {
+    panel.setAttribute("hidden", "");
+    panel.hidden = true;
+    panel.classList.remove("is-open");
+    wrap.classList.remove("is-open");
+    btn.setAttribute("aria-expanded", "false");
+  };
+
+  const open = () => {
+    document.getElementById("notifPanel")?.setAttribute("hidden", "");
+    document.getElementById("notifPanel")?.classList.remove("is-open");
+    document.querySelector(".notif-wrap:not(.ideas-wrap)")?.classList.remove("is-open");
+    document.getElementById("notifBell")?.setAttribute("aria-expanded", "false");
+    document.getElementById("ideasPanel")?.setAttribute("hidden", "");
+    document.getElementById("ideasPanel")?.classList.remove("is-open");
+    document.querySelector(".ideas-wrap")?.classList.remove("is-open");
+    document.getElementById("ideasBell")?.setAttribute("aria-expanded", "false");
+    panel.removeAttribute("hidden");
+    panel.hidden = false;
+    panel.classList.add("is-open");
+    wrap.classList.add("is-open");
+    btn.setAttribute("aria-expanded", "true");
+  };
+
+  const toggle = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    if (isOpen()) close();
+    else open();
+  };
+
+  close();
+  window.__closeHdrSettings = close;
+  window.__toggleHdrSettings = toggle;
+
+  btn.addEventListener("click", toggle);
+
+  panel.querySelectorAll("a[href]").forEach((a) => {
+    a.addEventListener("click", () => close());
+  });
+
+  document.getElementById("logoutBtn")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    close();
+    onLogout?.();
+  });
+
+  if (window.__settingsOutside) document.removeEventListener("click", window.__settingsOutside);
+  window.__settingsOutside = (e) => {
+    if (!isOpen()) return;
+    if (wrap.contains(e.target)) return;
+    close();
+  };
+  document.addEventListener("click", window.__settingsOutside);
+}
+
+async function pageAccount() {
+  let user = authUser() || {};
+  try {
+    const me = await api("/api/auth/me");
+    if (me?.id) {
+      user = me;
+      setAuth(authToken(), me);
+    }
+  } catch { /* keep cached user */ }
+
+  const d = await api("/api/today").catch(() => ({}));
+  const kycDone = !!(user.pan && user.aadhaar && user.phone);
+  return {
+    html: `
+      <div class="page-shell page-account">
+        <section class="panel account-panel">
+          <div class="panel-hd account-hd">
+            <div>
+              <p class="account-kicker">Profile & KYC</p>
+              <h2>Account details</h2>
+              <p class="muted">Keep login, contact, and identity details organised. Password is optional — leave blank to keep the current one.</p>
+            </div>
+            <div class="account-hd-side">
+              <div class="account-avatar-lg" aria-hidden="true">${esc(userInitial(user))}</div>
+              <span class="account-kyc-pill ${kycDone ? "is-ok" : "is-warn"}">${kycDone ? "KYC filled" : "KYC incomplete"}</span>
+            </div>
+          </div>
+          <div class="panel-bd">
+            <form class="account-form" id="accountForm" novalidate>
+              <div class="account-section">
+                <div class="account-section-hd">
+                  <h3>Login profile</h3>
+                  <p>How you sign in and appear on the desk.</p>
+                </div>
+                <div class="account-grid">
+                  <label>Full name
+                    <input class="auth-input" name="name" maxlength="60" value="${esc(user.name || "")}" autocomplete="name" />
+                    <span class="auth-hint" data-for="name" hidden></span>
+                  </label>
+                  <label>Username
+                    <input class="auth-input" name="username" maxlength="32" value="${esc(user.username || "")}" autocomplete="username" required />
+                    <span class="auth-hint" data-for="username" hidden></span>
+                  </label>
+                  <label>Email
+                    <input class="auth-input" name="email" type="email" maxlength="80" value="${esc(user.email || "")}" autocomplete="email" required />
+                    <span class="auth-hint" data-for="email" hidden></span>
+                  </label>
+                  <label>Mobile number
+                    <input class="auth-input" name="phone" inputmode="numeric" maxlength="10" placeholder="10-digit mobile" value="${esc(user.phone || "")}" autocomplete="tel" />
+                    <span class="auth-hint" data-for="phone" hidden></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="account-section">
+                <div class="account-section-hd">
+                  <h3>Identity (KYC)</h3>
+                  <p>PAN and Aadhaar are validated for format. Used for desk records only.</p>
+                </div>
+                <div class="account-grid">
+                  <label>PAN
+                    <input class="auth-input" name="pan" maxlength="10" placeholder="ABCDE1234F" value="${esc(user.pan || "")}" style="text-transform:uppercase" />
+                    <span class="auth-hint" data-for="pan" hidden></span>
+                  </label>
+                  <label>Aadhaar
+                    <input class="auth-input" name="aadhaar" inputmode="numeric" maxlength="12" placeholder="12-digit Aadhaar" value="${esc(user.aadhaar || "")}" />
+                    <span class="auth-hint" data-for="aadhaar" hidden></span>
+                  </label>
+                  <label>Date of birth
+                    <input class="auth-input" name="dob" type="date" value="${esc(user.dob || "")}" />
+                    <span class="auth-hint" data-for="dob" hidden></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="account-section">
+                <div class="account-section-hd">
+                  <h3>Address</h3>
+                  <p>Optional correspondence details.</p>
+                </div>
+                <div class="account-grid account-grid-wide">
+                  <label class="account-span-2">Address line
+                    <input class="auth-input" name="address_line" maxlength="120" value="${esc(user.address_line || "")}" autocomplete="street-address" />
+                    <span class="auth-hint" data-for="address_line" hidden></span>
+                  </label>
+                  <label>City
+                    <input class="auth-input" name="city" maxlength="60" value="${esc(user.city || "")}" autocomplete="address-level2" />
+                    <span class="auth-hint" data-for="city" hidden></span>
+                  </label>
+                  <label>State
+                    <input class="auth-input" name="state" maxlength="60" value="${esc(user.state || "")}" autocomplete="address-level1" />
+                    <span class="auth-hint" data-for="state" hidden></span>
+                  </label>
+                  <label>PIN code
+                    <input class="auth-input" name="pincode" inputmode="numeric" maxlength="6" value="${esc(user.pincode || "")}" autocomplete="postal-code" />
+                    <span class="auth-hint" data-for="pincode" hidden></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="account-section">
+                <div class="account-section-hd">
+                  <h3>Security</h3>
+                  <p>Leave blank to keep your current password.</p>
+                </div>
+                <div class="account-grid">
+                  <label>New password <span class="auth-optional">(optional)</span>
+                    ${passwordFieldHtml({ name: "password", autocomplete: "new-password", minlength: "6", maxlength: "72", placeholder: "Leave blank to keep current password" })}
+                    <span class="auth-hint" data-for="password" hidden></span>
+                  </label>
+                </div>
+              </div>
+
+              <p class="account-banner" id="accountBanner" hidden></p>
+              <div class="account-actions">
+                <button type="submit" class="btn btn-primary" id="accountSaveBtn">Save changes</button>
+                <a class="btn btn-ghost" href="#/">Back to Dashboard</a>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>`,
+    meta: { ...d, n_holdings: d.n_holdings ?? d.holdings?.length ?? 0 },
+    after: () => bindAccountForm(),
+  };
+}
+
+function validPhone(v) {
+  return /^[6-9]\d{9}$/.test(String(v || "").trim());
+}
+
+function validPan(v) {
+  return /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(String(v || "").trim().toUpperCase());
+}
+
+function validAadhaar(v) {
+  return /^\d{12}$/.test(String(v || "").replace(/\D+/g, ""));
+}
+
+function validPincode(v) {
+  return /^[1-9]\d{5}$/.test(String(v || "").trim());
+}
+
+function bindAccountForm() {
+  const form = document.getElementById("accountForm");
+  const banner = document.getElementById("accountBanner");
+  const saveBtn = document.getElementById("accountSaveBtn");
+  if (!form || !saveBtn) return;
+  bindPasswordToggles(form);
+
+  const setBanner = (msg, tone = "bad") => {
+    if (!banner) return;
+    if (!msg) {
+      banner.hidden = true;
+      banner.textContent = "";
+      banner.className = "account-banner";
+      return;
+    }
+    banner.hidden = false;
+    banner.className = `account-banner account-banner-${tone}`;
+    banner.textContent = msg;
+  };
+
+  const setFieldError = (field, msg) => {
+    const input = form.querySelector(`[name="${field}"]`);
+    const hint = form.querySelector(`.auth-hint[data-for="${field}"]`);
+    if (input) input.classList.toggle("is-invalid", !!msg);
+    if (hint) {
+      hint.textContent = msg || "";
+      hint.hidden = !msg;
+    }
+  };
+
+  const clearErrors = () => {
+    form.querySelectorAll(".auth-input").forEach((el) => el.classList.remove("is-invalid"));
+    form.querySelectorAll(".auth-hint").forEach((el) => { el.textContent = ""; el.hidden = true; });
+    setBanner("");
+  };
+
+  form.querySelector('[name="pan"]')?.addEventListener("input", (e) => {
+    e.target.value = String(e.target.value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+  });
+  form.querySelector('[name="aadhaar"]')?.addEventListener("input", (e) => {
+    e.target.value = String(e.target.value || "").replace(/\D+/g, "").slice(0, 12);
+  });
+  form.querySelector('[name="phone"]')?.addEventListener("input", (e) => {
+    e.target.value = String(e.target.value || "").replace(/\D+/g, "").slice(0, 10);
+  });
+  form.querySelector('[name="pincode"]')?.addEventListener("input", (e) => {
+    e.target.value = String(e.target.value || "").replace(/\D+/g, "").slice(0, 6);
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErrors();
+    const fd = new FormData(form);
+    const name = String(fd.get("name") || "").trim();
+    const email = String(fd.get("email") || "").trim();
+    const username = String(fd.get("username") || "").trim();
+    const phone = String(fd.get("phone") || "").trim();
+    const pan = String(fd.get("pan") || "").trim().toUpperCase();
+    const aadhaar = String(fd.get("aadhaar") || "").replace(/\D+/g, "");
+    const dob = String(fd.get("dob") || "").trim();
+    const address_line = String(fd.get("address_line") || "").trim();
+    const city = String(fd.get("city") || "").trim();
+    const state = String(fd.get("state") || "").trim();
+    const pincode = String(fd.get("pincode") || "").trim();
+    const password = String(fd.get("password") || "");
+    let ok = true;
+    if (!email) {
+      setFieldError("email", "Email is required.");
+      ok = false;
+    } else if (!validEmail(email)) {
+      setFieldError("email", "Enter a valid email address.");
+      ok = false;
+    }
+    if (!username) {
+      setFieldError("username", "Username is required.");
+      ok = false;
+    } else if (!validUsername(username)) {
+      setFieldError("username", "Use 3–32 characters: letters, numbers, . _ - only.");
+      ok = false;
+    }
+    if (phone && !validPhone(phone)) {
+      setFieldError("phone", "Enter a valid 10-digit Indian mobile number.");
+      ok = false;
+    }
+    if (pan && !validPan(pan)) {
+      setFieldError("pan", "Enter a valid PAN (e.g. ABCDE1234F).");
+      ok = false;
+    }
+    if (aadhaar && !validAadhaar(aadhaar)) {
+      setFieldError("aadhaar", "Enter a valid 12-digit Aadhaar number.");
+      ok = false;
+    }
+    if (pincode && !validPincode(pincode)) {
+      setFieldError("pincode", "Enter a valid 6-digit PIN code.");
+      ok = false;
+    }
+    if (password && password.length < 6) {
+      setFieldError("password", "Password must be at least 6 characters.");
+      ok = false;
+    }
+    if (!ok) {
+      setBanner("Please correct the highlighted fields.", "bad");
+      return;
+    }
+    saveBtn.disabled = true;
+    try {
+      const body = {
+        name, email, username, phone, pan, aadhaar, dob,
+        address_line, city, state, pincode,
+      };
+      if (password.trim()) body.password = password;
+      const res = await api("/api/auth/me", { method: "PATCH", body: JSON.stringify(body) });
+      const user = res?.user || { ...(authUser() || {}), ...body };
+      setAuth(authToken(), user);
+      form.querySelector('[name="password"]').value = "";
+      setBanner("Account details saved.", "ok");
+      toast("Account updated", true);
+      await render();
+    } catch (err) {
+      const msg = err?.message || "Could not save details.";
+      setBanner(msg, "bad");
+      if (/email/i.test(msg)) setFieldError("email", msg);
+      else if (/username/i.test(msg)) setFieldError("username", msg);
+      else if (/password/i.test(msg)) setFieldError("password", msg);
+      else if (/pan/i.test(msg)) setFieldError("pan", msg);
+      else if (/aadhaar/i.test(msg)) setFieldError("aadhaar", msg);
+      else if (/mobile|phone/i.test(msg)) setFieldError("phone", msg);
+      else if (/pin/i.test(msg)) setFieldError("pincode", msg);
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+}
+
+
 function bindNotifBell(meta) {
   updateNotifBadge();
   // Must not match .ideas-wrap — that also has class notif-wrap
@@ -3258,6 +3848,7 @@ function bindNotifBell(meta) {
     document.getElementById("ideasPanel")?.classList.remove("is-open");
     document.querySelector(".ideas-wrap")?.classList.remove("is-open");
     document.getElementById("ideasBell")?.setAttribute("aria-expanded", "false");
+    window.__closeHdrSettings?.();
     panel.removeAttribute("hidden");
     panel.classList.add("is-open");
     wrap.classList.add("is-open");
@@ -3310,7 +3901,7 @@ function bindNotifBell(meta) {
     a.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const item = a.closest(".notif-feed-item");
+      const item = a.closest(".notif-row");
       const id = a.getAttribute("data-notif-view") || item?.getAttribute("data-notif-id");
       const href = a.getAttribute("href") || item?.getAttribute("data-notif-href") || "#/";
       const ticker = item?.getAttribute("data-notif-ticker") || "";
@@ -3323,18 +3914,23 @@ function bindNotifBell(meta) {
   document.getElementById("notifMarkRead")?.addEventListener("click", (e) => {
     e.stopPropagation();
     markNotifsRead();
-    panel.querySelectorAll(".notif-feed-item").forEach((el) => el.classList.remove("is-unread"));
+    panel.querySelectorAll(".notif-row").forEach((el) => {
+      el.classList.remove("is-unread");
+      el.classList.add("is-read");
+    });
     const sub = panel.querySelector(".notif-panel-hd .tiny");
-    if (sub) sub.textContent = "Caught up";
+    if (sub) sub.textContent = "No unread";
   });
 
   document.getElementById("notifClear")?.addEventListener("click", (e) => {
     e.stopPropagation();
     clearNotifs();
-    const feed = panel.querySelector(".notif-block-bd");
-    if (feed) feed.innerHTML = `<p class="notif-empty">Inbox cleared.</p>`;
+    const stack = panel.querySelector(".notif-stack");
+    if (stack) {
+      stack.innerHTML = `<div class="notif-empty-card"><strong>Inbox cleared</strong><p>New alerts will show up here.</p></div>`;
+    }
     const sub = panel.querySelector(".notif-panel-hd .tiny");
-    if (sub) sub.textContent = "Caught up";
+    if (sub) sub.textContent = "No unread";
   });
 
   panel.querySelectorAll("[data-notif-approve]").forEach((btn) => {
@@ -3374,18 +3970,20 @@ function bindNotifBell(meta) {
       e.stopPropagation();
       const id = btn.getAttribute("data-notif-dismiss");
       removeNotif(id);
-      btn.closest(".notif-feed-item")?.remove();
+      btn.closest(".notif-row")?.remove();
       const sub = panel.querySelector(".notif-panel-hd .tiny");
-      const left = panel.querySelectorAll(".notif-feed-item").length;
+      const left = panel.querySelectorAll(".notif-row").length;
       if (sub) sub.textContent = left ? `${unreadNotifCount()} unread` : "Caught up";
       if (!left) {
-        const feed = panel.querySelector(".notif-block-bd");
-        if (feed) feed.innerHTML = `<p class="notif-empty">No desk alerts yet. Pauses, rule sells, and session notes land here.</p>`;
+        const stack = panel.querySelector(".notif-stack");
+        if (stack) {
+          stack.innerHTML = `<div class="notif-empty-card"><strong>You're all caught up</strong><p>Rule sells, pauses, and session notes appear here.</p></div>`;
+        }
       }
     });
   });
 
-  panel.querySelectorAll(".notif-feed-item").forEach((el) => {
+  panel.querySelectorAll(".notif-row").forEach((el) => {
     el.addEventListener("click", (e) => {
       if (e.target.closest("button, a")) return;
       const id = el.getAttribute("data-notif-id");
@@ -3459,7 +4057,6 @@ function bindNav(meta) {
     });
   });
   document.getElementById("datePick")?.addEventListener("change", (e) => setViewDate(e.target.value, cal, session));
-  document.getElementById("themeBtn")?.addEventListener("click", () => { setTheme(theme() === "dark" ? "light" : "dark"); render(); });
   bindNotifBell(meta);
   bindIdeasPanel(meta);
   const doLogout = async () => {
@@ -3479,8 +4076,13 @@ function bindNav(meta) {
     location.hash = "#/login";
     render();
   };
-  document.getElementById("logoutBtn")?.addEventListener("click", doLogout);
-  document.getElementById("logoutBtnSidebar")?.addEventListener("click", doLogout);
+  bindHdrSettings({ onLogout: doLogout });
+  document.getElementById("themeBtn")?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setTheme(theme() === "dark" ? "light" : "dark");
+    render();
+  });
   document.getElementById("reset")?.addEventListener("click", async () => {
     if (busy) return;
     if (viewDate) {
@@ -3526,10 +4128,60 @@ function bindNav(meta) {
   bindStickyScroll();
 }
 
+function passwordFieldHtml({
+  id = "",
+  name = "password",
+  autocomplete = "current-password",
+  required = false,
+  minlength = "",
+  maxlength = "72",
+  placeholder = "",
+  value = "",
+  extraClass = "auth-input",
+} = {}) {
+  const idAttr = id ? ` id="${esc(id)}"` : "";
+  const req = required ? " required" : "";
+  const minL = minlength ? ` minlength="${esc(String(minlength))}"` : "";
+  const maxL = maxlength ? ` maxlength="${esc(String(maxlength))}"` : "";
+  const ph = placeholder ? ` placeholder="${esc(placeholder)}"` : "";
+  const val = value ? ` value="${esc(value)}"` : "";
+  return `
+    <div class="pw-field">
+      <input class="${esc(extraClass)}"${idAttr} name="${esc(name)}" type="password" autocomplete="${esc(autocomplete)}"${req}${minL}${maxL}${ph}${val} />
+      <button type="button" class="pw-toggle" aria-label="Show password" title="Show password" aria-pressed="false">
+        <span class="pw-toggle-ico pw-ico-show" aria-hidden="true">${UI_ICO.eye}</span>
+        <span class="pw-toggle-ico pw-ico-hide" aria-hidden="true" hidden>${UI_ICO.eyeOff}</span>
+      </button>
+    </div>`;
+}
+
+function bindPasswordToggles(root = document) {
+  root.querySelectorAll(".pw-field").forEach((wrap) => {
+    const input = wrap.querySelector("input");
+    const btn = wrap.querySelector(".pw-toggle");
+    if (!input || !btn || btn.dataset.bound === "1") return;
+    btn.dataset.bound = "1";
+    const showIco = btn.querySelector(".pw-ico-show");
+    const hideIco = btn.querySelector(".pw-ico-hide");
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.setAttribute("aria-pressed", show ? "true" : "false");
+      btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      btn.title = show ? "Hide password" : "Show password";
+      if (showIco) showIco.hidden = show;
+      if (hideIco) hideIco.hidden = !show;
+      input.focus();
+    });
+  });
+}
+
 function authShell(title, body, foot = "", { mode = "login" } = {}) {
   const altLink = mode === "login"
-    ? `<a class="auth-hdr-link" href="#/signup">${UI_ICO.signup}<span>Create account</span></a>`
-    : `<a class="auth-hdr-link" href="#/login">${UI_ICO.login}<span>Sign in</span></a>`;
+    ? `<a class="auth-hdr-link" href="#/signup"><span>Create account</span></a>`
+    : `<a class="auth-hdr-link" href="#/login"><span>Sign in</span></a>`;
   return `
   <div class="auth-desk">
     <header class="auth-hdr">
@@ -3538,12 +4190,12 @@ function authShell(title, body, foot = "", { mode = "login" } = {}) {
         <div><strong>SNS Capital</strong><span>Investment Desk</span></div>
       </a>
       <div class="auth-hdr-actions">
-        <button class="btn btn-icon hdr-tool-btn" id="authThemeBtn" type="button" aria-label="Toggle theme">${theme() === "dark" ? UI_ICO.sun : UI_ICO.moon}</button>
+        <button class="btn btn-icon hdr-tool-btn" id="authThemeBtn" type="button" aria-label="Toggle theme">${theme() === "dark" ? "☀️" : "🌙"}</button>
         ${altLink}
       </div>
     </header>
     <div class="auth-card">
-      <h1 class="auth-title">${UI_ICO[mode === "login" ? "login" : "signup"]}${esc(title)}</h1>
+      <h1 class="auth-title">${esc(title)}</h1>
       <div class="auth-banner" id="authBanner" hidden role="alert"></div>
       ${body}
       ${foot}
@@ -3561,11 +4213,11 @@ function pageLogin() {
       </label>
       <label>
         Password
-        <input class="auth-input" id="loginPassword" name="password" type="password" autocomplete="current-password" required minlength="6" />
+        ${passwordFieldHtml({ id: "loginPassword", name: "password", autocomplete: "current-password", required: true, minlength: "6" })}
         <span class="auth-hint" data-for="password" hidden></span>
       </label>
-      <button class="btn btn-primary auth-submit" type="submit">${UI_ICO.login}<span>Sign in</span></button>
-      <p class="auth-alt">No account? <a href="#/signup">${UI_ICO.signup}<span>Create an account</span></a></p>
+      <button class="btn btn-primary auth-submit" type="submit">Sign in</button>
+      <p class="auth-alt">No account? <a href="#/signup">Create an account</a></p>
     </form>`);
 }
 
@@ -3588,16 +4240,16 @@ function pageSignup() {
       </label>
       <label>
         Password
-        <input class="auth-input" id="signupPassword" name="password" type="password" autocomplete="new-password" required minlength="6" maxlength="72" />
+        ${passwordFieldHtml({ id: "signupPassword", name: "password", autocomplete: "new-password", required: true, minlength: "6", maxlength: "72" })}
         <span class="auth-hint" data-for="password" hidden></span>
       </label>
       <label>
         Confirm password
-        <input class="auth-input" id="signupPassword2" name="password2" type="password" autocomplete="new-password" required minlength="6" maxlength="72" />
+        ${passwordFieldHtml({ id: "signupPassword2", name: "password2", autocomplete: "new-password", required: true, minlength: "6", maxlength: "72" })}
         <span class="auth-hint" data-for="password2" hidden></span>
       </label>
-      <button class="btn btn-primary auth-submit" type="submit">${UI_ICO.signup}<span>Create account</span></button>
-      <p class="auth-alt">Already registered? <a href="#/login">${UI_ICO.login}<span>Sign in</span></a></p>
+      <button class="btn btn-primary auth-submit" type="submit">Create account</button>
+      <p class="auth-alt">Already registered? <a href="#/login">Sign in</a></p>
     </form>`, "", { mode: "signup" });
 }
 
@@ -3697,6 +4349,7 @@ function validateSignupForm(form) {
 
 function bindAuthForms() {
   flushAuthNotice();
+  bindPasswordToggles(document);
   document.getElementById("authThemeBtn")?.addEventListener("click", () => {
     setTheme(theme() === "dark" ? "light" : "dark");
     render();
@@ -3727,7 +4380,7 @@ function bindAuthForms() {
       setAuthBanner(msg, "bad");
       topNotice(msg, "bad", { title: "Sign-in failed" });
     } finally {
-      if (btn) { btn.disabled = false; btn.innerHTML = `${UI_ICO.login}<span>Sign in</span>`; }
+      if (btn) { btn.disabled = false; btn.textContent = "Sign in"; }
     }
   });
 
@@ -3759,7 +4412,7 @@ function bindAuthForms() {
       else if (/password/i.test(msg)) setAuthFieldError(form, "password", msg);
       topNotice(msg, "bad", { title: "Registration failed" });
     } finally {
-      if (btn) { btn.disabled = false; btn.innerHTML = `${UI_ICO.signup}<span>Create account</span>`; }
+      if (btn) { btn.disabled = false; btn.textContent = "Create account"; }
     }
   });
 
@@ -5092,6 +5745,7 @@ async function pageDashboard() {
       bindReportActions();
       bindLiveChartChips(d.live);
       paintLiveChart(d.live);
+      bindLiveQuoteDetails(document.getElementById("liveTape") || document);
       bindAnalyticsHover();
     },
   };
@@ -5284,14 +5938,18 @@ async function pageTrade() {
   const sub = d.readonly
     ? `Archive for ${esc(fmtDate(d.view_date))} — review only.`
     : marketClosed
-      ? "Markets closed — you can review picks; investing unlocks next open day."
+      ? (String(d.market_status || "") === "weekend"
+        ? "Weekend lock — no invest today. Friday ₹5,000 / daily ceiling only apply on open NSE sessions."
+        : "Markets closed — you can review picks; investing unlocks next open day.")
       : paused
         ? `Buying paused until ${esc(fmtDate(d.pause_until) || "—")}. Resume below if you accept the risk.`
         : budgetDone
           ? `Done for today (${inr(usedDep)} invested). Come back next open day.`
           : usedDep > 0
-            ? `Already invested ${inr(usedDep)} · about ${inr(remain)} left today.`
-            : `Simple path: enter amount → Preview → Invest. Room today ≈ ${inr(remain)}.`;
+            ? `Already invested ${inr(usedDep)} · about ${inr(remain)} left today${d.friday ? ` · Friday cap ${inr(Math.round(Number(d.friday_cap) || 5000))}` : ""}.`
+            : d.friday
+              ? `Friday rule: ceiling ${inr(dailyTarget)} (not the usual regime amount). Enter amount → Preview → Invest.`
+              : `Simple path: enter amount → Preview → Invest. Room today ≈ ${inr(remain)}.`;
   return {
     html: `
       <div class="page-shell page-trade page-trade-simple${d.readonly ? " page-trade-past" : ""}${marketClosed ? " page-trade-closed" : ""}${paused ? " page-trade-paused" : ""}">
@@ -6516,6 +7174,7 @@ async function render() {
     else if (page === "backtest") out = await pageBacktest();
     else if (page === "trade") out = await pageTrade();
     else if (page === "rules") out = await pageRules();
+    else if (page === "account") out = await pageAccount();
     else out = await pageDashboard();
     const meta = normalizeMeta(out.meta || {}, route().page);
     if (out.meta?.pnl) meta.pnl = out.meta.pnl;

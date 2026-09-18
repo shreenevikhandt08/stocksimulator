@@ -13,7 +13,15 @@ import math
 
 from app.agents.graph import GRAPH_PATH, ORCHESTRATOR
 from app.agents.researcher_team import research_ticker
-from app.auth_store import login as do_login, logout as do_logout, resolve_token, signup as do_signup, user_by_id
+from app.auth_store import (
+    login as do_login,
+    logout as do_logout,
+    resolve_token,
+    signup as do_signup,
+    update_profile as do_update_profile,
+    user_by_id,
+    _public_user as public_user,
+)
 from app.config import (
     ALLOCATION,
     ASSET_LABELS,
@@ -136,6 +144,21 @@ class SignupBody(BaseModel):
 class LoginBody(BaseModel):
     login: str
     password: str
+
+
+class ProfileUpdateBody(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    username: Optional[str] = None
+    password: Optional[str] = None
+    phone: Optional[str] = None
+    pan: Optional[str] = None
+    aadhaar: Optional[str] = None
+    dob: Optional[str] = None
+    address_line: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
 
 
 def _apply_book_override(st, pnl: dict) -> dict:
@@ -524,9 +547,20 @@ def _clock_meta(st, view: date, readonly: bool) -> dict:
         note = f"Archive view for {view.strftime('%d %b %Y')} — investing stays on the live session."
     elif status == "weekend":
         note = (
-            f"Markets are closed today ({today.strftime('%A')}). "
-            f"Live desk uses last session {session.strftime('%d %b %Y')}. "
-            f"Next open {clock['open']} IST."
+            f"Markets are closed today ({today.strftime('%A')}) — investing is locked until the next NSE open session "
+            f"({clock['open']} IST Mon–Fri). Daily budget / Friday ₹5,000 cap only apply on open sessions. "
+            f"Live desk still shows last session {session.strftime('%d %b %Y')}."
+        )
+    elif status == "closed":
+        note = (
+            f"Markets closed for the day (ended {clock['close']} IST). "
+            f"Investing unlocks at {clock['open']} IST next open session — "
+            f"weekend days stay locked; Friday sessions use the Friday ₹5,000 cap when that rule is on."
+        )
+    elif status == "preopen":
+        note = (
+            f"Pre-open — NSE cash session starts at {clock['open']} IST. "
+            f"Investing unlocks when the market opens."
         )
     return {
         "calendar_date": today.isoformat(),
@@ -640,12 +674,35 @@ def auth_me(authorization: Optional[str] = Header(None)):
     user = user_by_id(uid)
     if not user:
         raise HTTPException(401, "User not found")
-    return {
-        "id": user["id"],
-        "email": user["email"],
-        "username": user["username"],
-        "name": user.get("name") or user["username"],
-    }
+    return public_user(user)
+
+
+@router.patch("/auth/me")
+def auth_update_me(body: ProfileUpdateBody, authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Login required")
+    uid = resolve_token(authorization[7:].strip())
+    if not uid:
+        raise HTTPException(401, "Session expired")
+    try:
+        user = do_update_profile(
+            uid,
+            name=body.name,
+            email=body.email,
+            username=body.username,
+            password=body.password,
+            phone=body.phone,
+            pan=body.pan,
+            aadhaar=body.aadhaar,
+            dob=body.dob,
+            address_line=body.address_line,
+            city=body.city,
+            state=body.state,
+            pincode=body.pincode,
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"ok": True, "user": user}
 
 
 @router.get("/status")
@@ -765,12 +822,24 @@ def today(as_of: Optional[str] = Query(None)):
         _strat = _get_strat(getattr(st, "strategy_id", None))
     except ValueError:
         _strat = _get_strat("multi_factor")
+    friday_cap = float(sim.rp("friday_contribution_cap", 5_000))
+    regime_name = last.regime
+    # Uncapped regime contribution (before Friday min)
+    r = "bear" if getattr(sim, "force_bear_budget", False) else sim.regime()
+    bull = float(sim.rp("contribution_bull", 10_000))
+    side = float(sim.rp("contribution_sideways", 7_000))
+    bear = float(sim.rp("contribution_bear", 3_000))
+    regime_budget = {"bull": bull, "sideways": side, "bear": bear}.get(r, bull)
+    daily_cap = float(sim.daily_budget())
+    is_friday = last.date.weekday() == 4
     return {
         **clock,
-        "regime": last.regime,
-        "friday": last.date.weekday() == 4,
+        "regime": regime_name,
+        "friday": is_friday,
+        "friday_cap": _inr(friday_cap),
+        "regime_budget": _inr(regime_budget),
         "contribution_today": _inr(sim.contributed_today()),
-        "recommended_amount": _inr(sim.daily_budget()),
+        "recommended_amount": _inr(daily_cap),
         "remaining_daily_budget": _inr(sim.remaining_daily_budget()),
         "remaining_deploy_budget": _inr(sim.remaining_deploy_budget()),
         "max_deployable": _inr(_max_deployable_after(sim, max(sim.remaining_deploy_budget(), 1.0))[0]),
@@ -808,7 +877,8 @@ def today(as_of: Optional[str] = Query(None)):
         },
         "starting_cash": STARTING_CASH,
         "reserve_pct": last.cash / last.portfolio_value if last.portfolio_value else 0,
-        "reserve_target": CASH_RESERVE_PCT,
+        "reserve_target": float(sim.rp("cash_reserve_pct", CASH_RESERVE_PCT)) if sim.rule_on("cash_reserve") else 0.0,
+        "reserve_floor": _inr(sim.reserve_floor()),
         "n_holdings": len(sim.positions),
         "holdings": all_h,
         "holdings_today": today_h,
@@ -930,23 +1000,37 @@ def _suggestions(st, limit: int, for_display: bool = False):
 
 
 def _max_deployable_after(sim, amount: float) -> tuple[float, float, float]:
-    """Return (max_deployable, reserve_floor, extra_contribution) for an invest amount."""
+    """Return (max_deployable, reserve_floor, extra_contribution) for an invest amount.
+
+    Max deployable always considers remaining contribution room (not only cash on hand),
+    so a small typed amount still shows how much can be put to work after the reserve.
+    """
     s = get_settings()
-    requested = float(amount)
-    remain_contrib = sim.remaining_daily_budget()
-    remain_deploy = sim.remaining_deploy_budget()
-    extra = max(0.0, requested - sim.cash)
-    if extra > remain_contrib:
-        requested = sim.cash + remain_contrib
-        extra = remain_contrib
-    cash_after = sim.cash + extra
-    mtm_after = sim.mtm() + extra
+    requested = max(0.0, float(amount))
+    remain_contrib = float(sim.remaining_daily_budget())
+    remain_deploy = float(sim.remaining_deploy_budget())
+    cash = float(sim.cash)
+    mtm = float(sim.mtm())
     reserve_pct = float(sim.rp("cash_reserve_pct", s.cash_reserve_pct)) if sim.rule_on("cash_reserve") else 0.0
-    reserve_floor = reserve_pct * mtm_after
-    max_from_cash = max(0.0, round(cash_after - reserve_floor, 2))
-    # Also respect remaining daily deploy ceiling
-    max_deployable = min(max_from_cash, remain_deploy)
-    return max(0.0, round(max_deployable, 2)), round(reserve_floor, 2), round(extra, 2)
+
+    # Ceiling if we use all remaining contrib room (true "Max safe")
+    cash_full = cash + remain_contrib
+    mtm_full = mtm + remain_contrib
+    reserve_full = reserve_pct * mtm_full
+    max_deployable = min(max(0.0, cash_full - reserve_full), remain_deploy)
+    max_deployable = max(0.0, round(max_deployable, 2))
+
+    target = min(requested, max_deployable) if requested > 0 else max_deployable
+    # Contribution needed so that (cash + extra) - reserve(mtm+extra) >= target
+    if reserve_pct >= 0.999:
+        extra = min(remain_contrib, max(0.0, target - cash))
+    else:
+        # extra >= (target - cash + reserve_pct * mtm) / (1 - reserve_pct)
+        need = (target - cash + reserve_pct * mtm) / max(1e-9, (1.0 - reserve_pct))
+        extra = min(remain_contrib, max(0.0, need))
+    extra = max(0.0, round(extra, 2))
+    reserve_floor = reserve_pct * (mtm + extra)
+    return max_deployable, round(reserve_floor, 2), extra
 
 
 def _scale_tickets_to_cap(tickets: list, cap: float) -> list:
@@ -985,18 +1069,15 @@ def _plan_from_amount(st, amount: float) -> dict:
     daily_cap = sim.daily_budget()
     used_contrib = sim.contributed_today()
     used_deploy = sim.deployed_today()
-    extra = max(0.0, requested - sim.cash)
-    if extra > remain_contrib:
-        requested = sim.cash + remain_contrib
-        extra = remain_contrib
-    # Boss v3.1: never deploy the cash reserve (of MTM *after* this contribution).
+    # Use helper so small typed amounts still unlock contribution above the reserve floor
+    probe = max(requested, remain_deploy, 1.0)
+    max_deployable, reserve_floor, extra = _max_deployable_after(sim, probe)
+    if requested > 0:
+        max_deployable, reserve_floor, extra = _max_deployable_after(sim, requested)
+    spend = min(requested if requested > 0 else max_deployable, max_deployable)
     mtm_after = sim.mtm() + extra
     cash_after = sim.cash + extra
     reserve_pct = float(sim.rp("cash_reserve_pct", s.cash_reserve_pct)) if sim.rule_on("cash_reserve") else 0.0
-    reserve_floor = reserve_pct * mtm_after
-    max_from_cash = max(0.0, round(cash_after - reserve_floor, 2))
-    max_deployable = min(max_from_cash, remain_deploy)
-    spend = min(requested, max_deployable)
 
     def _room(ticker: str) -> float:
         held = sim.positions[ticker].qty * sim._px(ticker) if ticker in sim.positions else 0.0
@@ -1004,27 +1085,39 @@ def _plan_from_amount(st, amount: float) -> dict:
 
     buys = [p for p in buys if _room(p["ticker"]) >= 80]
     if not buys or spend <= 0:
-        if remain_deploy <= 0 or remain_contrib <= 0 and sim.cash <= reserve_floor + 1:
+        if remain_deploy <= 0:
             note = (
-                f"Daily budget already used (₹{used_deploy:,.0f} / ₹{daily_cap:,.0f} deployed"
-                f"{f', ₹{used_contrib:,.0f} contributed' if used_contrib else ''}). "
-                f"Come back next session."
+                f"Daily deploy ceiling used (₹{used_deploy:,.0f} / ₹{daily_cap:,.0f}). "
+                f"Come back next open session."
             )
         elif sim.buying_paused():
             note = "Buying paused"
-        elif spend <= 0:
-            if remain_deploy >= 50 and max_deployable < 50:
+        elif spend <= 0 and max_deployable < 50:
+            if remain_contrib < 50 and float(sim.cash) <= float(reserve_floor) + 1:
                 note = (
-                    f"Remaining cash is the required {s.cash_reserve_pct:.0%} reserve "
-                    f"(~ Rs {reserve_floor:,.0f}). Investable now is Rs 0 — daily ceiling still shows "
-                    f"Rs {remain_deploy:,.0f} left, but that is not cash above the reserve. "
-                    f"Come back next session to contribute & deploy more."
+                    f"Boss brief — cash reserve lock: keep {s.cash_reserve_pct:.0%} of portfolio "
+                    f"in cash (~ Rs {reserve_floor:,.0f}). Cash on hand is already that reserve, "
+                    f"and today's contribution room is used "
+                    f"(₹{used_contrib:,.0f} / ₹{daily_cap:,.0f}). "
+                    f"Daily ceiling left (Rs {remain_deploy:,.0f}) is not spendable without cash above the reserve. "
+                    f"Next open session: contribute fresh capital, then deploy."
+                )
+            elif remain_contrib >= 50:
+                note = (
+                    f"Cash on hand is the {s.cash_reserve_pct:.0%} reserve (~ Rs {reserve_floor:,.0f}). "
+                    f"Click Max safe (~ Rs {max_deployable:,.0f}) — the desk will use today's contribution "
+                    f"room (Rs {remain_contrib:,.0f}) so you can invest above the reserve."
                 )
             else:
                 note = (
                     f"Keep {s.cash_reserve_pct:.0%} cash reserve (~ Rs {reserve_floor:,.0f}) — "
-                    f"max deployable ≈ Rs {max_deployable:,.0f}"
+                    f"investable now is Rs 0. Daily ceiling left Rs {remain_deploy:,.0f} needs cash above reserve."
                 )
+        elif spend <= 0:
+            note = (
+                f"Keep {s.cash_reserve_pct:.0%} cash reserve (~ Rs {reserve_floor:,.0f}) — "
+                f"max deployable ≈ Rs {max_deployable:,.0f}"
+            )
         else:
             note = "Every pick is already near the 10% per-name cap — trim or wait for new names"
         return {

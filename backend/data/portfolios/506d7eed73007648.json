@@ -1,37 +1,37 @@
 {
-  "as_of": "2026-09-17",
+  "as_of": "2026-09-18",
   "skipped": [],
   "recent_shown": {
-    "JSWSTEEL": "2026-09-17",
-    "ONGC": "2026-09-17",
+    "JSWSTEEL": "2026-09-18",
+    "ONGC": "2026-09-18",
     "HDFCLIFE": "2026-09-12",
     "WIPRO": "2026-09-12",
     "HEROMOTOCO": "2026-09-15",
-    "ZOMATO": "2026-09-17",
-    "EICHERMOT": "2026-09-17",
-    "LTIM": "2026-09-17",
-    "GODREJPROP": "2026-09-17",
-    "BEL": "2026-09-17",
+    "ZOMATO": "2026-09-18",
+    "EICHERMOT": "2026-09-18",
+    "LTIM": "2026-09-18",
+    "GODREJPROP": "2026-09-18",
+    "BEL": "2026-09-18",
     "IOC": "2026-09-16",
-    "HAL": "2026-09-17",
-    "DRREDDY": "2026-09-17",
-    "HCLTECH": "2026-09-17",
-    "PERSISTENT": "2026-09-17",
-    "INDUSINDBK": "2026-09-17",
-    "BAJFINANCE": "2026-09-17",
-    "KOTAKBANK": "2026-09-17",
+    "HAL": "2026-09-18",
+    "DRREDDY": "2026-09-18",
+    "HCLTECH": "2026-09-18",
+    "PERSISTENT": "2026-09-18",
+    "INDUSINDBK": "2026-09-18",
+    "BAJFINANCE": "2026-09-18",
+    "KOTAKBANK": "2026-09-18",
     "VEDL": "2026-09-17",
-    "ICICIBANK": "2026-09-17",
-    "BAJAJFINSV": "2026-09-17",
-    "NFLX": "2026-09-17",
-    "NVDA": "2026-09-17",
-    "TCS": "2026-09-17",
-    "HDFCBANK": "2026-09-17",
-    "HAVELLS": "2026-09-17",
-    "TATAELXSI": "2026-09-16",
-    "DMART": "2026-09-16",
-    "AMD": "2026-09-16",
-    "ULTRACEMCO": "2026-09-17",
+    "ICICIBANK": "2026-09-18",
+    "BAJAJFINSV": "2026-09-18",
+    "NFLX": "2026-09-18",
+    "NVDA": "2026-09-18",
+    "TCS": "2026-09-18",
+    "HDFCBANK": "2026-09-18",
+    "HAVELLS": "2026-09-18",
+    "TATAELXSI": "2026-09-18",
+    "DMART": "2026-09-18",
+    "AMD": "2026-09-18",
+    "ULTRACEMCO": "2026-09-18",
     "INDIGO": "2026-09-17",
     "APOLLOHOSP": "2026-09-17",
     "AXISBANK": "2026-09-17",
@@ -42,93 +42,87 @@
     "MSFT": "2026-09-17",
     "GRASIM": "2026-09-17",
     "CIPLA": "2026-09-17",
-    "AVGO": "2026-09-17"
+    "AVGO": "2026-09-18"
   },
-  "strategy_id": "quality",
+  "strategy_id": "low_vol",
   "book_override": null,
   "book_override_date": null,
   "sim": {
     "idx": 319,
-    "cash": 1997.4379577011232,
+    "cash": 2000.01463527663,
     "savings": 0.0,
-    "total_contributed": 39928.88964191468,
-    "peak": 39958.00729709491,
+    "total_contributed": 40851.354914763615,
+    "peak": 40044.026782662964,
     "cb_tier": 0,
     "force_bear_budget": false,
     "liquidated_once": false,
     "pause_until": null,
     "pause_override": false,
-    "last_invest_date": "2026-09-17",
-    "prev_value": 38416.47043289944,
+    "last_invest_date": "2026-09-18",
+    "prev_value": 38213.993306653465,
     "daily_returns": [],
     "regime_calls": [],
-    "cooldowns": {},
+    "cooldowns": {
+      "AVGO": "2026-10-18"
+    },
     "pending_actions": [],
     "dismissed_pending": {
-      "AMD|Stop loss (ATR)": "2026-09-17",
-      "PALLADIUM|Stop loss (ATR)": "2026-09-17",
-      "NATGAS|Stop loss (ATR)": "2026-09-17",
-      "TSLA|Stop loss (ATR)": "2026-09-17",
-      "JSWSTEEL|Stop loss (ATR)": "2026-09-17",
-      "ONGC|Stop loss (ATR)": "2026-09-17"
+      "AMD|Stop loss (ATR)": "2026-09-18",
+      "PALLADIUM|Stop loss (ATR)": "2026-09-18",
+      "NATGAS|Stop loss (ATR)": "2026-09-18",
+      "TSLA|Stop loss (ATR)": "2026-09-18",
+      "JSWSTEEL|Stop loss (ATR)": "2026-09-18",
+      "ONGC|Stop loss (ATR)": "2026-09-18",
+      "HAL|Stop loss (ATR)": "2026-09-18",
+      "BEL|Stop loss (ATR)": "2026-09-18"
     },
     "positions": [
       {
         "ticker": "LTIM",
-        "qty": 0.3049943580992052,
-        "avg_cost": 9758.672319544641,
+        "qty": 0.34075741977113205,
+        "avg_cost": 9758.67231954464,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 289.29396900711805,
-        "stop": 9180.084381530405
+        "stop": 9180.084381530403
       },
       {
         "ticker": "NFLX",
-        "qty": 0.030057641979758937,
+        "qty": 0.03265283412144607,
         "avg_cost": 78992.22439334683,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 3266.9581874822156,
         "stop": 72458.30801838239
       },
       {
         "ticker": "NVDA",
-        "qty": 0.011769695893664191,
+        "qty": 0.012919200728489278,
         "avg_cost": 178337.65791093322,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 10940.910518849187,
         "stop": 156455.83687323486
       },
       {
         "ticker": "AMD",
-        "qty": 0.050578165190148926,
-        "avg_cost": 34409.35253433974,
+        "qty": 0.07737746628615463,
+        "avg_cost": 24607.058581668836,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 958.52326185361,
-        "stop": 32492.30601063252
-      },
-      {
-        "ticker": "AVGO",
-        "qty": 0.06785842802730208,
-        "avg_cost": 33775.61294343358,
-        "opened_on": "2026-09-09",
-        "days_held": 8,
-        "extensions": 0,
-        "last_atr": 1252.1686499065954,
-        "stop": 31271.275643620393
+        "stop": 22690.012057961616
       },
       {
         "ticker": "PALLADIUM",
         "qty": 0.027876559918400906,
         "avg_cost": 106572.332048725,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 2795.248351736146,
         "stop": 100981.83534525271
@@ -138,7 +132,7 @@
         "qty": 8.99998664903127,
         "avg_cost": 249.98397870395743,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 10.799300935889516,
         "stop": 228.3853768321784
@@ -148,7 +142,7 @@
         "qty": 3.0,
         "avg_cost": 260.6290632534084,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 7.163059813362744,
         "stop": 246.3029436266829
@@ -158,7 +152,7 @@
         "qty": 26.0,
         "avg_cost": 102.93822940432227,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 1.179135521120074,
         "stop": null
@@ -168,7 +162,7 @@
         "qty": 28.99573055785104,
         "avg_cost": 98.42019934740281,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 0.5515832598437589,
         "stop": null
@@ -178,7 +172,7 @@
         "qty": 70.50400417879011,
         "avg_cost": 19.792492869785068,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 2.479555838823011,
         "stop": 16.073159111550552
@@ -188,7 +182,7 @@
         "qty": 0.005470379978802724,
         "avg_cost": 234257.95008127965,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 14807.563358030002,
         "stop": 212046.60504423466
@@ -198,7 +192,7 @@
         "qty": 2.528350647563486,
         "avg_cost": 498.1983022069613,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 33.39520524195947,
         "stop": 448.1054943440221
@@ -208,7 +202,7 @@
         "qty": 0.014772036247707046,
         "avg_cost": 35004.6528,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 1548.313820570921,
         "stop": 31908.02515885816
@@ -218,7 +212,7 @@
         "qty": 4.151871320949263,
         "avg_cost": 121.85589602625902,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 8.952571539706742,
         "stop": 108.4270387166989
@@ -228,77 +222,77 @@
         "qty": 0.22644927536231885,
         "avg_cost": 2208.0,
         "opened_on": "2026-09-09",
-        "days_held": 8,
+        "days_held": 9,
         "extensions": 0,
         "last_atr": 94.50760288226309,
         "stop": 2018.9847942354738
       },
       {
         "ticker": "ZOMATO",
-        "qty": 10.0,
+        "qty": 11.82528551049743,
         "avg_cost": 300.5020648557383,
         "opened_on": "2026-09-10",
-        "days_held": 7,
+        "days_held": 8,
         "extensions": 0,
         "last_atr": 14.27069143838704,
         "stop": 271.9606819789642
       },
       {
         "ticker": "JSWSTEEL",
-        "qty": 1.1609218609014382,
-        "avg_cost": 1235.225253564026,
+        "qty": 1.4349595399872523,
+        "avg_cost": 1242.5437444848371,
         "opened_on": "2026-09-16",
-        "days_held": 1,
+        "days_held": 2,
         "extensions": 0,
         "last_atr": 35.142764840413534,
-        "stop": 1164.939723883199
+        "stop": 1172.25821480401
       },
       {
         "ticker": "ONGC",
-        "qty": 3.0,
-        "avg_cost": 234.62,
+        "qty": 4.5002549601710236,
+        "avg_cost": 233.95563347370617,
         "opened_on": "2026-09-16",
-        "days_held": 1,
+        "days_held": 2,
         "extensions": 0,
         "last_atr": 6.787311664593578,
-        "stop": 221.04537667081286
+        "stop": 220.38101014451902
       },
       {
         "ticker": "EICHERMOT",
-        "qty": 0.1748928854415736,
-        "avg_cost": 7455.992258962568,
+        "qty": 0.2212499186743113,
+        "avg_cost": 7471.189186890875,
         "opened_on": "2026-09-16",
-        "days_held": 1,
+        "days_held": 2,
         "extensions": 0,
         "last_atr": 215.50870838655197,
-        "stop": 7024.974842189464
+        "stop": 7040.171770117771
       },
       {
         "ticker": "HAL",
-        "qty": 0.08043008931973077,
-        "avg_cost": 4724.6,
+        "qty": 0.12287578988084222,
+        "avg_cost": 4760.905305815726,
         "opened_on": "2026-09-17",
-        "days_held": 0,
+        "days_held": 1,
         "extensions": 0,
         "last_atr": 75.23031626085042,
-        "stop": 4574.139367478299
+        "stop": 4610.444673294025
       },
       {
         "ticker": "BEL",
-        "qty": 0.9613668239194186,
-        "avg_cost": 392.15,
+        "qty": 1.6555957934145842,
+        "avg_cost": 394.4718424106838,
         "opened_on": "2026-09-17",
-        "days_held": 0,
+        "days_held": 1,
         "extensions": 0,
         "last_atr": 11.400157376645804,
-        "stop": 369.34968524670836
+        "stop": 371.6715276573922
       },
       {
         "ticker": "GODREJPROP",
         "qty": 0.21895190236898782,
         "avg_cost": 1671.6,
         "opened_on": "2026-09-17",
-        "days_held": 0,
+        "days_held": 1,
         "extensions": 0,
         "last_atr": 100.41216396898571,
         "stop": 1470.7756720620284
@@ -308,7 +302,7 @@
         "qty": 0.015236858488895732,
         "avg_cost": 23626.9176,
         "opened_on": "2026-09-17",
-        "days_held": 0,
+        "days_held": 1,
         "extensions": 0,
         "last_atr": 669.9096108397076,
         "stop": 22287.098378320585
@@ -318,10 +312,20 @@
         "qty": 0.11422469640510775,
         "avg_cost": 1365.5429373166924,
         "opened_on": "2026-09-17",
-        "days_held": 0,
+        "days_held": 1,
         "extensions": 0,
         "last_atr": 43.00657504458399,
         "stop": 1279.5297872275244
+      },
+      {
+        "ticker": "BAJFINANCE",
+        "qty": 0.0209506167067408,
+        "avg_cost": 9784.91482468112,
+        "opened_on": "2026-09-18",
+        "days_held": 0,
+        "extensions": 0,
+        "last_atr": 361.89855315261246,
+        "stop": 9061.117718375895
       }
     ],
     "trades": [
@@ -747,8 +751,8 @@
         "date": "2026-09-11",
         "ticker": "AMD",
         "side": "buy",
-        "qty": 0.006370518088920106,
-        "price": 48190.743,
+        "qty": 0.01602416286841796,
+        "price": 19158.56712896164,
         "amount": 307.0,
         "reason": "signal",
         "pnl": 0.0,
@@ -792,10 +796,10 @@
         "ticker": "JSWSTEEL",
         "side": "trim",
         "qty": 0.31490489578609804,
-        "price": 748.7440100515053,
-        "amount": 235.7831544557344,
+        "price": 729.8446197005712,
+        "amount": 229.83164390685275,
         "reason": "Trim to cap",
-        "pnl": -175.65540064789036,
+        "pnl": -181.60691119677202,
         "profit_to_savings": 0.0
       },
       {
@@ -803,10 +807,10 @@
         "ticker": "ONGC",
         "side": "sell",
         "qty": 7.0,
-        "price": 174.0249078278931,
-        "amount": 1218.1743547952517,
+        "price": 175.49389503423612,
+        "amount": 1228.4572652396528,
         "reason": "Stop loss (ATR)",
-        "pnl": -438.24564520474837,
+        "pnl": -427.9627347603473,
         "profit_to_savings": 0.0
       },
       {
@@ -814,10 +818,10 @@
         "ticker": "JSWSTEEL",
         "side": "sell",
         "qty": 1.1282254859863625,
-        "price": 748.7440100515053,
-        "amount": 844.7520746197374,
+        "price": 729.8446197005712,
+        "amount": 823.4293007562089,
         "reason": "Stop loss (ATR)",
-        "pnl": -629.3293702766377,
+        "pnl": -650.6521441401662,
         "profit_to_savings": 0.0
       },
       {
@@ -946,10 +950,10 @@
         "ticker": "AMD",
         "side": "trim",
         "qty": 0.010919235352654641,
-        "price": 20077.545837141046,
-        "amount": 219.2314482994545,
+        "price": 19378.23037122914,
+        "amount": 211.5954581414111,
         "reason": "Trim to cap",
-        "pnl": -128.33663513264057,
+        "pnl": -83.26254216528122,
         "profit_to_savings": 0.0
       },
       {
@@ -1187,8 +1191,8 @@
         "date": "2026-09-17",
         "ticker": "AMD",
         "side": "buy",
-        "qty": 0.007495315427857589,
-        "price": 49230.75,
+        "qty": 0.01911440754118766,
+        "price": 19304.80969419952,
         "amount": 369.0,
         "reason": "signal",
         "pnl": 0.0,
@@ -1237,20 +1241,218 @@
         "reason": "signal",
         "pnl": 0.0,
         "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "ZOMATO",
+        "side": "buy",
+        "qty": 0.8252855104974307,
+        "price": 300.5020648557383,
+        "amount": 248.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "JSWSTEEL",
+        "side": "buy",
+        "qty": 0.11303870005494936,
+        "price": 1273.9,
+        "amount": 144.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "EICHERMOT",
+        "side": "buy",
+        "qty": 0.019136212624584717,
+        "price": 7525.0,
+        "amount": 144.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "ONGC",
+        "side": "buy",
+        "qty": 0.6188757091284167,
+        "price": 232.68,
+        "amount": 144.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "LTIM",
+        "side": "buy",
+        "qty": 0.014756105675522808,
+        "price": 9758.672319544641,
+        "amount": 144.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "BEL",
+        "side": "buy",
+        "qty": 0.17876505196939213,
+        "price": 397.65,
+        "amount": 71.08592291562877,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "AVGO",
+        "side": "sell",
+        "qty": 0.06785842802730208,
+        "price": 33253.975,
+        "amount": 2256.5624691592025,
+        "reason": "User sell",
+        "pnl": -35.39753084079757,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "ZOMATO",
+        "side": "buy",
+        "qty": 1.0,
+        "price": 300.5020648557383,
+        "amount": 300.5020648557383,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "JSWSTEEL",
+        "side": "buy",
+        "qty": 0.1609989790308647,
+        "price": 1273.3,
+        "amount": 205.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "EICHERMOT",
+        "side": "buy",
+        "qty": 0.02722082060815297,
+        "price": 7531.0,
+        "amount": 205.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "ONGC",
+        "side": "buy",
+        "qty": 0.8813792510426072,
+        "price": 232.59,
+        "amount": 205.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "LTIM",
+        "side": "buy",
+        "qty": 0.021006955996404,
+        "price": 9758.672319544641,
+        "amount": 205.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "BEL",
+        "side": "buy",
+        "qty": 0.5154639175257733,
+        "price": 397.7,
+        "amount": 205.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "HAL",
+        "side": "buy",
+        "qty": 0.04244570056111146,
+        "price": 4829.7,
+        "amount": 205.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "BAJFINANCE",
+        "side": "buy",
+        "qty": 0.0209506167067408,
+        "price": 9784.91482468112,
+        "amount": 205.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "NFLX",
+        "side": "buy",
+        "qty": 0.0025951921416871282,
+        "price": 78992.22439334684,
+        "amount": 205.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "NVDA",
+        "side": "buy",
+        "qty": 0.001149504834825086,
+        "price": 178337.65791093325,
+        "amount": 205.0,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
+      },
+      {
+        "date": "2026-09-18",
+        "ticker": "AMD",
+        "side": "buy",
+        "qty": 0.0055265642031777935,
+        "price": 20077.545837141046,
+        "amount": 110.95984611120502,
+        "reason": "signal",
+        "pnl": 0.0,
+        "profit_to_savings": 0.0
       }
     ],
     "history": [
       {
         "date": "2026-09-09",
         "regime": "bull",
-        "budget": 1717.72,
+        "budget": 1997.16,
         "deployed": 9329.58,
-        "portfolio_value": 9884.544385239162,
+        "portfolio_value": 9841.031551210308,
         "cash": 670.4207629310465,
         "savings": 0.0,
-        "daily_pnl": -1833.18,
+        "daily_pnl": -2156.13,
         "drawdown_pct": 0.0,
-        "reserve_pct": 0.06782515579900705,
+        "reserve_pct": 0.06812504963959741,
         "peak": 10001.45890835414
       },
       {
@@ -1258,10 +1460,10 @@
         "regime": "bull",
         "budget": 8782.28,
         "deployed": 8782.28,
-        "portfolio_value": 16496.59181673352,
+        "portfolio_value": 16303.280780973579,
         "cash": 0.0,
         "savings": 0.0,
-        "daily_pnl": -2170.23,
+        "daily_pnl": -2320.03,
         "drawdown_pct": 0.0034762420175821055,
         "reserve_pct": 0.0,
         "peak": 19688.13104519728
@@ -1271,12 +1473,12 @@
         "regime": "bull",
         "budget": 3853.0,
         "deployed": 2592.06,
-        "portfolio_value": 18686.827160324647,
-        "cash": 2298.7095838707237,
+        "portfolio_value": 18683.242940674943,
+        "cash": 2281.7182099027145,
         "savings": 0.0,
-        "daily_pnl": -1662.76,
+        "daily_pnl": -1473.04,
         "drawdown_pct": 0.048974901890936694,
-        "reserve_pct": 0.12301229974188878,
+        "reserve_pct": 0.12212645401806706,
         "peak": 21808.70860947296
       },
       {
@@ -1284,12 +1486,12 @@
         "regime": "sideways",
         "budget": 0.0,
         "deployed": 0.0,
-        "portfolio_value": 18884.178458801463,
-        "cash": 2298.7095838707237,
+        "portfolio_value": 18768.444472355888,
+        "cash": 2281.7182099027145,
         "savings": 0.0,
-        "daily_pnl": 197.35,
+        "daily_pnl": 85.2,
         "drawdown_pct": 0.07959705974373187,
-        "reserve_pct": 0.12172674542796169,
+        "reserve_pct": 0.12157204680779304,
         "peak": 20406.09196550071
       },
       {
@@ -1297,10 +1499,10 @@
         "regime": "bull",
         "budget": 6226.88,
         "deployed": 7330.3,
-        "portfolio_value": 23429.690747794702,
+        "portfolio_value": 23253.73533033456,
         "cash": 0.0,
         "savings": 0.0,
-        "daily_pnl": -1681.37,
+        "daily_pnl": -1741.59,
         "drawdown_pct": 0.0837816784449306,
         "reserve_pct": 0.0,
         "peak": 26504.00410035699
@@ -1308,28 +1510,41 @@
       {
         "date": "2026-09-16",
         "regime": "bull",
-        "budget": 8004.77,
+        "budget": 6514.89,
         "deployed": 6514.89,
-        "portfolio_value": 32227.580790984764,
-        "cash": 1709.1103580853269,
+        "portfolio_value": 30093.368838812577,
+        "cash": 0.0,
         "savings": 0.0,
-        "daily_pnl": 793.12,
+        "daily_pnl": 324.74,
         "drawdown_pct": 0.01741889196233827,
-        "reserve_pct": 0.053032536608004645,
+        "reserve_pct": 0.0,
         "peak": 33753.78386458366
       },
       {
         "date": "2026-09-17",
         "regime": "bull",
-        "budget": 6188.89,
+        "budget": 5900.56,
         "deployed": 5900.56,
-        "portfolio_value": 39937.14680660672,
-        "cash": 1997.4379577011232,
+        "portfolio_value": 35318.99387482554,
+        "cash": 0.0,
         "savings": 0.0,
-        "daily_pnl": 1520.676373707276,
+        "daily_pnl": -674.93,
         "drawdown_pct": 0.04521576246745694,
-        "reserve_pct": 0.050014538278700754,
+        "reserve_pct": 0.0,
         "peak": 39958.00729709491
+      },
+      {
+        "date": "2026-09-18",
+        "regime": "bull",
+        "budget": 2895.0,
+        "deployed": 3151.55,
+        "portfolio_value": 40037.855897143934,
+        "cash": 2000.01463527663,
+        "savings": 0.0,
+        "daily_pnl": 1823.8625904904693,
+        "drawdown_pct": 0.060580957854975304,
+        "reserve_pct": 0.049953090405605347,
+        "peak": 40044.026782662964
       }
     ],
     "rule_flags": {
@@ -1378,144 +1593,7 @@
       "post_earnings_cooling_days": 3.0
     },
     "rule_copy": {
-      "rules": {
-        "quality_filter": {
-          "label": "Quality filter (3 of 5)",
-          "blurb": "A name must pass at least 3 of the 5 checklist items below before any buy.",
-          "details": [
-            "Must pass \u22653 of 5: earnings trend \u00b7 news > 0 \u00b7 price > 200-DMA \u00b7 RS > market \u00b7 volume > 20-day avg.",
-            "Bonds/commodities/crypto: earnings flag auto-passes; trend uses 50-DMA for bonds/commodities.",
-            "Optional Value condition (OFF by default) adds a 6th flag; still need \u22653 of the included flags."
-          ]
-        },
-        "cooldown": {
-          "label": "Cooldown after full exit",
-          "blurb": "After a full sell, no re-buy until cooldown days elapse.",
-          "details": [
-            "Full exit \u2192 wait the cooldown (default 30 days) before that ticker can be bought again.",
-            "Partial trim does not start cooldown on the remaining shares."
-          ]
-        },
-        "earnings_blackout": {
-          "label": "Earnings blackout",
-          "blurb": "No new buys inside the blackout window before earnings.",
-          "details": [
-            "Default: block buys within 5 trading days before simulated earnings."
-          ]
-        },
-        "sleeve_max": {
-          "label": "Sleeve max allocation",
-          "blurb": "Do not open new names when a sleeve already sits at its boss max.",
-          "details": [
-            "India 30\u201345% (def 35%) \u00b7 US 15\u201325% (20%) \u00b7 Commodities 10\u201325% (15%) \u00b7 Bonds 5\u201320% (10%) \u00b7 Crypto 5\u201310% (7%).",
-            "Bull regime shifts toward equity upper range; bear toward bonds/commodities.",
-            "Unspent sleeve budget spills to the next best eligible picks. Crypto may use fractional units."
-          ]
-        },
-        "subsector_cap": {
-          "label": "Sub-sector name cap",
-          "blurb": "Limit how many names from the same sub-sector.",
-          "details": [
-            "Boss default: max 3 names from the same sub-sector."
-          ]
-        },
-        "sector_cap": {
-          "label": "Sector weight cap",
-          "blurb": "Cap weight in any single sector of the book.",
-          "details": [
-            "Boss default: each sector \u2264 40% of portfolio value."
-          ]
-        },
-        "max_position": {
-          "label": "Max position size",
-          "blurb": "No single company may dominate the book.",
-          "details": [
-            "Boss default: no name > 10%; if overweight, trim toward 8% (no cooldown on partial trim)."
-          ]
-        },
-        "cash_reserve": {
-          "label": "Cash reserve floor",
-          "blurb": "Always keep a cash reserve \u2014 never fully deploy MTM.",
-          "details": [
-            "Reserve = % of current portfolio value (MTM), recalculated daily.",
-            "Boss default 5%. Max deployable = cash \u2212 reserve floor."
-          ]
-        },
-        "daily_budget": {
-          "label": "Daily deploy ceiling",
-          "blurb": "Boss daily contribution / deploy cap by market regime.",
-          "details": [
-            "Bull \u20b910,000 (index > 50-DMA and 50 > 200). Sideways \u20b97,000. Bear \u20b93,000.",
-            "Friday budget capped (default \u20b95,000). Bonds and commodities still allowed."
-          ]
-        },
-        "hold_maturity": {
-          "label": "30d hold / maturity sell",
-          "blurb": "Force a maturity sell when hold days are reached (unless you Keep).",
-          "details": [
-            "Default max hold 30 days. Day 31 queues a sell for your approval.",
-            "Sell reasons logged: 30d maturity \u00b7 Stop loss (ATR) \u00b7 Trim to cap \u00b7 Portfolio drawdown pause."
-          ]
-        },
-        "atr_stops": {
-          "label": "ATR stop-loss",
-          "blurb": "Queue a sell when price hits the ATR stop vs average cost.",
-          "details": [
-            "Equity stop = 2 \u00d7 ATR(14). Crypto / high-vol = 1.5 \u00d7 ATR(14).",
-            "Bonds: no ATR stop (hold to maturity / 30d). Stops can fire any day."
-          ]
-        },
-        "trim_cap": {
-          "label": "Trim overweight names",
-          "blurb": "Queue a partial sell when a name exceeds max position.",
-          "details": [
-            "Uses Max position size thresholds. Approve or Keep on Trade / Alerts."
-          ]
-        },
-        "drawdown_breaker": {
-          "label": "Drawdown circuit breaker",
-          "blurb": "Pause buying / force risk actions on portfolio drawdown tiers.",
-          "details": [
-            "Boss tiers: \u221210% pause 3d \u00b7 \u221215% pause 7d + bear budget \u00b7 \u221220% liquidate ~50%.",
-            "Resume when drawdown recovers below 7% from peak."
-          ]
-        },
-        "winner_rollover": {
-          "label": "Winner roll-over",
-          "blurb": "OPTIONAL \u2014 extend winners past hold days instead of forcing sell.",
-          "details": [
-            "Boss leaves this OFF unless explicitly requested. Max one extension when quality still passes."
-          ]
-        },
-        "value_condition": {
-          "label": "Value condition",
-          "blurb": "OPTIONAL \u2014 add a 6th quality flag (cheap vs PE proxy).",
-          "details": [
-            "Below ~52-week median PE proxy for India/US equities. Still need \u22653 of included flags."
-          ]
-        },
-        "news_decay": {
-          "label": "News decay",
-          "blurb": "OPTIONAL \u2014 decay older headlines in the news factor.",
-          "details": [
-            "Default half-life 3 days when enabled."
-          ]
-        },
-        "post_earnings_cooling": {
-          "label": "Post-earnings cooling",
-          "blurb": "OPTIONAL \u2014 extra buy block after the earnings print.",
-          "details": [
-            "Default 3 days after earnings when enabled."
-          ]
-        },
-        "three_mode": {
-          "label": "Three-mode stops (commodities)",
-          "blurb": "OPTIONAL \u2014 apply crypto-style ATR stops to commodities.",
-          "details": [
-            "When ON, commodities use the tighter crypto ATR multiple."
-          ]
-        }
-      },
+      "rules": {},
       "quality_checklist": {}
     },
     "allocation": {
