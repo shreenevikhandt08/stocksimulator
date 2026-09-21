@@ -33,6 +33,7 @@ from app.config import (
 )
 from app.data.live import TAPE
 from app.data.universe import UNIVERSE, by_ticker
+from app.db import mongo_status
 from app.engine.scoring import quality_flags, quality_pass, score_universe
 from app.engine.suggestions import build_suggestions, portfolio_risk_profile
 from app.engine.rules_gate import can_buy, filter_tickets
@@ -139,6 +140,7 @@ class SignupBody(BaseModel):
     username: str
     password: str
     name: str = ""
+    phone: str = ""
 
 
 class LoginBody(BaseModel):
@@ -631,8 +633,9 @@ def _live_pack(st, n_bars: int = 28) -> dict:
 @router.get("/health")
 def health():
     s = get_settings()
+    mongo = mongo_status()
     return {
-        "status": "ok",
+        "status": "ok" if mongo.get("ok") else "degraded",
         "connected": True,
         "api": "sns-capital",
         "app_env": s.app_env,
@@ -642,13 +645,23 @@ def health():
         "calendar_date": date.today().isoformat(),
         "clock": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "live": TAPE.snapshot(),
+        "mongo": mongo,
+        "store": "mongodb" if mongo.get("ok") else "unavailable",
+        "feeds": {
+            "market": s.market_data_provider,
+            "news_priority": s.news_source_priority,
+            "openrouter": bool((s.openrouter_api_key or "").strip()),
+            "finnhub": bool((s.finnhub_api_key or "").strip()),
+            "newsapi": bool((s.news_api_key or "").strip()),
+            "alphavantage": bool((s.alpha_vantage_api_key or "").strip()),
+        },
     }
 
 
 @router.post("/auth/signup")
 def auth_signup_route(body: SignupBody):
     try:
-        return do_signup(body.email, body.username, body.password, body.name)
+        return do_signup(body.email, body.username, body.password, body.name, body.phone)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
 

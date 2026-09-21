@@ -8,6 +8,7 @@ from typing import Optional
 
 from app.config import BACKEND_ROOT, TRADED_DAYS_ON_BOOT, Toggles, get_settings
 from app.data.generator import MarketBook
+from app.db import load_portfolio, mongo_ready, save_portfolio
 from app.engine.simulator import Simulator
 from app.user_context import get_user
 
@@ -35,7 +36,7 @@ class AppState:
         self.user_id = user_id
         self.store_path = store_path or _portfolio_path(user_id)
         self.toggles = Toggles()
-        payload = _read_store(self.store_path)
+        payload = _read_store(self.user_id, self.store_path)
         saved_as_of = None
         if payload and payload.get("as_of"):
             try:
@@ -153,8 +154,6 @@ class AppState:
         self.save()
 
     def save(self) -> None:
-        path = self.store_path
-        path.parent.mkdir(parents=True, exist_ok=True)
         blob = {
             "as_of": self.as_of.isoformat(),
             "skipped": sorted(self.skipped),
@@ -164,6 +163,11 @@ class AppState:
             "book_override_date": self.book_override_date,
             "sim": self.sim.dump_state(),
         }
+        if mongo_ready():
+            save_portfolio(self.user_id, blob)
+            return
+        path = self.store_path
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(blob, indent=2), encoding="utf-8")
 
 
@@ -179,7 +183,11 @@ def _portfolio_path(user_id: str) -> Path:
     return PORTFOLIOS_DIR / f"{_safe_user_id(user_id)}.json"
 
 
-def _read_store(path: Path) -> Optional[dict]:
+def _read_store(user_id: str, path: Path) -> Optional[dict]:
+    if mongo_ready():
+        doc = load_portfolio(user_id)
+        if doc:
+            return doc
     if not path.exists():
         return None
     try:

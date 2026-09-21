@@ -1,4 +1,12 @@
 services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
   desk:
     build: .
     ports:
@@ -9,7 +17,15 @@ services:
       APP_ENV: production
       HOST: 0.0.0.0
       PORT: "8000"
+      MONGO_URI: mongodb://mongo:27017
+      MONGO_DB: sns_capital
+    depends_on:
+      - mongo
     volumes:
       - ./backend/data:/repo/backend/data
       - ./backend/config:/repo/backend/config
     restart: unless-stopped
+
+volumes:
+  mongo_data:
+

@@ -2613,8 +2613,9 @@ function researchReport(data, { canBuy = true } = {}) {
               `<a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.label || "Source")}</a>`
             ).join("")}</div>` : ""}
             ${sources.length ? `<ul class="rx-src-list">${sources.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : ""}
+            ${a.conflict && a.conflict.detected ? `<p class="rx-conflict">Conflict: using <strong>${esc(a.conflict.winner || "priority source")}</strong> only — not averaged.</p>` : ""}
             ${headlines.length ? `<ul class="rx-headlines">${headlines.map((h) =>
-              `<li><time class="mono">${esc(h.date || "")}</time> ${esc(h.title || "")}</li>`
+              `<li${h.conflict ? ' class="is-conflict"' : ""}><time class="mono">${esc(h.date || "")}</time>${h.source ? `<span class="rx-hsrc">${esc(h.source)}</span>` : ""} ${h.url ? `<a href="${esc(h.url)}" target="_blank" rel="noopener noreferrer">${esc(h.title || "")}</a>` : esc(h.title || "")}</li>`
             ).join("")}</ul>` : ""}
           </details>` : ""}
       </article>`;
@@ -4189,79 +4190,94 @@ function bindPasswordToggles(root = document) {
   });
 }
 
-function authShell(title, body, foot = "", { mode = "login" } = {}) {
+function authShell(title, lead, body, { mode = "login" } = {}) {
   const altLink = mode === "login"
-    ? `<a class="auth-hdr-link" href="#/signup"><span>Create account</span></a>`
-    : `<a class="auth-hdr-link" href="#/login"><span>Sign in</span></a>`;
+    ? `<a class="auth-hdr-link" href="#/signup">Create account</a>`
+    : `<a class="auth-hdr-link" href="#/login">Sign in</a>`;
   return `
   <div class="auth-desk">
-    <header class="auth-hdr">
-      <a class="auth-hdr-brand" href="#/login">
-        <div class="mark">SNS</div>
-        <div><strong>SNS Capital</strong><span>Investment Desk</span></div>
+    <aside class="auth-brand" aria-hidden="false">
+      <a class="auth-brand-mark" href="#/login">
+        <span class="mark">SNS</span>
+        <strong>SNS Capital</strong>
       </a>
-      <div class="auth-hdr-actions">
+      <div class="auth-brand-copy">
+        <p class="auth-brand-kicker">Investment desk</p>
+        <h2>Clarity for every rupee you deploy.</h2>
+        <p>Live prices, research, and book-keeping in one workspace.</p>
+        
+      </div>
+      <p class="auth-brand-foot">SNS Capital · Rules v3.1</p>
+    </aside>
+    <main class="auth-main">
+      <div class="auth-toolbar">
         <button class="btn btn-icon hdr-tool-btn" id="authThemeBtn" type="button" aria-label="Toggle theme">${theme() === "dark" ? "☀️" : "🌙"}</button>
         ${altLink}
       </div>
-    </header>
-    <div class="auth-card">
-      <h1 class="auth-title">${esc(title)}</h1>
-      <div class="auth-banner" id="authBanner" hidden role="alert"></div>
-      ${body}
-      ${foot}
-    </div>
+      <div class="auth-card">
+        <p class="auth-kicker">SNS Capital</p>
+        <h1 class="auth-title">${esc(title)}</h1>
+        <p class="auth-lead">${esc(lead)}</p>
+        <div class="auth-banner" id="authBanner" hidden role="alert"></div>
+        ${body}
+      </div>
+    </main>
   </div>`;
 }
 
 function pageLogin() {
-  return authShell("Sign in", `
+  return authShell("Welcome back", "Sign in to continue to your desk.", `
     <form class="auth-form" id="loginForm" novalidate>
       <label>
         Email or username
-        <input class="auth-input" id="loginId" name="login" autocomplete="username" required maxlength="80" />
+        <input class="auth-input" id="loginId" name="login" autocomplete="username" required maxlength="80" placeholder="you@company.com" />
         <span class="auth-hint" data-for="login" hidden></span>
       </label>
       <label>
         Password
-        ${passwordFieldHtml({ id: "loginPassword", name: "password", autocomplete: "current-password", required: true, minlength: "6" })}
+        ${passwordFieldHtml({ id: "loginPassword", name: "password", autocomplete: "current-password", required: true, minlength: "6", placeholder: "Enter your password" })}
         <span class="auth-hint" data-for="password" hidden></span>
       </label>
-      <button class="btn btn-primary auth-submit" type="submit">Sign in</button>
-      <p class="auth-alt">No account? <a href="#/signup">Create an account</a></p>
-    </form>`);
+      <button class="btn btn-primary auth-submit" type="submit">Continue</button>
+      <p class="auth-alt">New here? <a href="#/signup">Create an account</a></p>
+    </form>`, { mode: "login" });
 }
 
 function pageSignup() {
-  return authShell("Create account", `
+  return authShell("Create your account", "One profile for research, trading, and your book.", `
     <form class="auth-form" id="signupForm" novalidate>
       <label>
-        Full name <span class="auth-optional">(optional)</span>
-        <input class="auth-input" name="name" autocomplete="name" maxlength="60" />
+        Full name <span class="auth-optional">optional</span>
+        <input class="auth-input" name="name" autocomplete="name" maxlength="60" placeholder="Your name" />
       </label>
       <label>
         Work email
-        <input class="auth-input" id="signupEmail" name="email" type="email" autocomplete="email" required maxlength="80" />
+        <input class="auth-input" id="signupEmail" name="email" type="email" autocomplete="email" required maxlength="80" placeholder="you@company.com" />
         <span class="auth-hint" data-for="email" hidden></span>
       </label>
       <label>
         Username
-        <input class="auth-input" id="signupUsername" name="username" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9._\\-]{3,32}" />
+        <input class="auth-input" id="signupUsername" name="username" autocomplete="username" required minlength="3" maxlength="32" pattern="[A-Za-z0-9._\\-]{3,32}" placeholder="e.g. shree" />
         <span class="auth-hint" data-for="username" hidden></span>
       </label>
       <label>
+        Mobile <span class="auth-optional">optional</span>
+        <input class="auth-input" id="signupPhone" name="phone" inputmode="numeric" maxlength="10" placeholder="10-digit Indian mobile" autocomplete="tel" />
+        <span class="auth-hint" data-for="phone" hidden></span>
+      </label>
+      <label>
         Password
-        ${passwordFieldHtml({ id: "signupPassword", name: "password", autocomplete: "new-password", required: true, minlength: "6", maxlength: "72" })}
+        ${passwordFieldHtml({ id: "signupPassword", name: "password", autocomplete: "new-password", required: true, minlength: "6", maxlength: "72", placeholder: "At least 6 characters" })}
         <span class="auth-hint" data-for="password" hidden></span>
       </label>
       <label>
         Confirm password
-        ${passwordFieldHtml({ id: "signupPassword2", name: "password2", autocomplete: "new-password", required: true, minlength: "6", maxlength: "72" })}
+        ${passwordFieldHtml({ id: "signupPassword2", name: "password2", autocomplete: "new-password", required: true, minlength: "6", maxlength: "72", placeholder: "Re-enter password" })}
         <span class="auth-hint" data-for="password2" hidden></span>
       </label>
       <button class="btn btn-primary auth-submit" type="submit">Create account</button>
       <p class="auth-alt">Already registered? <a href="#/login">Sign in</a></p>
-    </form>`, "", { mode: "signup" });
+    </form>`, { mode: "signup" });
 }
 
 function setAuthFieldError(form, field, msg) {
@@ -4323,6 +4339,7 @@ function validateSignupForm(form) {
   const name = String(form.name?.value || "").trim();
   const email = String(form.email?.value || "").trim().toLowerCase();
   const username = String(form.username?.value || "").trim();
+  const phone = String(form.phone?.value || "").replace(/\D+/g, "");
   const password = String(form.password?.value || "");
   const password2 = String(form.password2?.value || "");
   let ok = true;
@@ -4340,6 +4357,10 @@ function validateSignupForm(form) {
     setAuthFieldError(form, "username", "Use 3–32 characters: letters, numbers, . _ - only.");
     ok = false;
   }
+  if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+    setAuthFieldError(form, "phone", "Enter a valid 10-digit Indian mobile number.");
+    ok = false;
+  }
   if (!password) {
     setAuthFieldError(form, "password", "Password is required.");
     ok = false;
@@ -4355,7 +4376,7 @@ function validateSignupForm(form) {
     ok = false;
   }
   if (!ok) setAuthBanner("Please correct the highlighted fields before continuing.", "bad");
-  return ok ? { name, email, username, password } : null;
+  return ok ? { name, email, username, phone, password } : null;
 }
 
 function bindAuthForms() {
@@ -4420,6 +4441,7 @@ function bindAuthForms() {
       setAuthBanner(msg, "bad");
       if (/email/i.test(msg)) setAuthFieldError(form, "email", msg);
       else if (/username/i.test(msg)) setAuthFieldError(form, "username", msg);
+      else if (/mobile|phone/i.test(msg)) setAuthFieldError(form, "phone", msg);
       else if (/password/i.test(msg)) setAuthFieldError(form, "password", msg);
       topNotice(msg, "bad", { title: "Registration failed" });
     } finally {
@@ -4669,7 +4691,7 @@ function bossMandateHtml(cfg) {
   ];
   const qualityRows = (qc.length ? qc : qualityFallback).map((c, i) => `
     <li class="boss-q-item" data-qc-key="${esc(c.key || "")}">
-      <span class="boss-q-num mono">${i + 1}</span>
+      <span class="boss-q-num">${i + 1}</span>
       <div class="boss-q-body">
         <div class="boss-q-review rules-review-only">
           <strong>${esc(c.label || "")}</strong>
@@ -4710,7 +4732,7 @@ function bossMandateHtml(cfg) {
       <section class="rules-block" aria-labelledby="rulesNumsHd">
         <header class="rules-block-hd">
           <div>
-            <h2 id="rulesNumsHd">1 · Numbers</h2>
+            <h2 id="rulesNumsHd"><span class="rules-step">1</span> Allocation and risk</h2>
             <p>Sleeves, daily budget, and risk thresholds.</p>
           </div>
         </header>
@@ -4756,8 +4778,8 @@ function bossMandateHtml(cfg) {
       <section class="rules-block" aria-labelledby="rulesQualityHd">
         <header class="rules-block-hd">
           <div>
-            <h2 id="rulesQualityHd">2 · Quality filter</h2>
-            <p>Need <strong>≥3 of 5</strong> checks to buy.</p>
+            <h2 id="rulesQualityHd"><span class="rules-step">2</span> Quality checks</h2>
+            <p>Need at least <strong>3 of 5</strong> checks to buy.</p>
           </div>
         </header>
         <div class="rules-block-bd">
@@ -4825,12 +4847,12 @@ function rulesPanel(cfg) {
           <p class="rule-row-blurb rules-review-only">${esc(r.blurb || "")}</p>
         </div>
         <div class="rule-state-view rules-review-only">
-          <span class="rule-state-pill ${r.enabled ? "is-on" : "is-off"}">${r.enabled ? "ON" : "OFF"}</span>
+          <span class="rule-state-pill ${r.enabled ? "is-on" : "is-off"}">${r.enabled ? "On" : "Off"}</span>
         </div>
         <label class="rule-toggle rules-edit-only" title="Toggle rule">
           <input type="checkbox" data-rule-toggle="${esc(r.id)}" ${r.enabled ? "checked" : ""} />
           <span class="rule-toggle-ui" aria-hidden="true"><i></i></span>
-          <span class="rule-toggle-lbl">${r.enabled ? "ON" : "OFF"}</span>
+          <span class="rule-toggle-lbl">${r.enabled ? "On" : "Off"}</span>
         </label>
       </div>
       <label class="rule-copy-field rule-blurb-field rules-edit-only">
@@ -4868,28 +4890,27 @@ function rulesPanel(cfg) {
   return `
     <div class="rules-workspace rules-mode-review" id="rulesWorkspace">
       <header class="rules-topbar">
-        <div class="rules-topbar-main">
-          <div>
-            <p class="rules-kicker">${esc(cfg.title || "Rules Checklist v3.1")}</p>
-            <h1 class="rules-topbar-title rules-review-only">Review</h1>
-            <h1 class="rules-topbar-title rules-edit-only">Editing</h1>
-            <p class="rules-topbar-sub rules-review-only">Live desk settings. Read only until you edit.</p>
-            <p class="rules-topbar-sub rules-edit-only" id="rulesSaveNote">Change numbers, wording, or toggles — Save returns to review.</p>
-          </div>
-          <div class="rules-topbar-stats">
-            <div><span>On</span><strong class="mono pos">${onN}</strong></div>
-            <div><span>Off</span><strong class="mono muted">${offN}</strong></div>
-            <div><span>Ver</span><strong class="mono">v${esc(cfg.version || "3.1")}</strong></div>
-          </div>
+        <div class="rules-topbar-copy">
+          <h1 class="rules-topbar-title rules-review-only">Operating rules <span class="rules-ver">v${esc(cfg.version || "3.1")}</span></h1>
+          <h1 class="rules-topbar-title rules-edit-only">Edit policy <span class="rules-ver">v${esc(cfg.version || "3.1")}</span></h1>
+          <p class="rules-topbar-sub rules-review-only">Allocation, quality checks, and trade switches — read-only until you edit.</p>
+          <p class="rules-topbar-sub rules-edit-only" id="rulesSaveNote">Change numbers, wording, or switches, then save.</p>
         </div>
-        <div class="rules-topbar-actions rules-review-only">
-          <a class="btn btn-ghost" href="#/trade">Trade</a>
-          <button type="button" class="btn btn-primary" id="rulesEditBtn">Edit rules</button>
-        </div>
-        <div class="rules-topbar-actions rules-edit-only">
-          <button type="button" class="btn btn-ghost" id="rulesCancelBtn">Cancel</button>
-          <button type="button" class="btn btn-ghost" id="rulesResetDefaults">Reset defaults</button>
-          <button type="button" class="btn btn-primary" id="rulesSave">Save changes</button>
+        <div class="rules-topbar-end">
+          <p class="rules-topbar-stats" aria-label="Rule status">
+            <span><strong>${onN}</strong> active</span>
+            <span class="rules-stats-dot" aria-hidden="true"></span>
+            <span><strong>${offN}</strong> paused</span>
+          </p>
+          <div class="rules-topbar-actions rules-review-only">
+            <a class="btn btn-ghost" href="#/trade">Trade</a>
+            <button type="button" class="btn btn-primary" id="rulesEditBtn">Edit</button>
+          </div>
+          <div class="rules-topbar-actions rules-edit-only">
+            <button type="button" class="btn btn-ghost" id="rulesCancelBtn">Cancel</button>
+            <button type="button" class="btn btn-ghost" id="rulesResetDefaults">Defaults</button>
+            <button type="button" class="btn btn-primary" id="rulesSave">Save</button>
+          </div>
         </div>
       </header>
 
@@ -4898,23 +4919,23 @@ function rulesPanel(cfg) {
       <section class="rules-block" aria-labelledby="rulesListHd">
         <header class="rules-block-hd">
           <div>
-            <h2 id="rulesListHd">3 · Rules</h2>
+            <h2 id="rulesListHd"><span class="rules-step">3</span> Rule list</h2>
             <p class="rules-review-only">Each rule’s status and description.</p>
-            <p class="rules-edit-only">Rewrite titles, flip ON/OFF, and edit detail sentences.</p>
+            <p class="rules-edit-only">Rewrite titles, turn rules on or off, and edit the detail lines.</p>
           </div>
         </header>
         <div class="rules-block-bd rules-block-list">
           <div class="rules-toolbar">
             <div class="tbl-tools-search">
               <span class="tbl-tools-ico" aria-hidden="true">⌕</span>
-              <input type="search" id="rulesSearch" class="tbl-search" placeholder="Search rules…" aria-label="Search rules" />
+              <input type="search" id="rulesSearch" class="tbl-search rules-search" placeholder="Search by name or description" aria-label="Search rules" />
             </div>
             <div class="tbl-chip-group" id="rulesStateFilter" role="group">
               <button type="button" class="tbl-chip on" data-rules-state="">All</button>
-              <button type="button" class="tbl-chip" data-rules-state="1">ON</button>
-              <button type="button" class="tbl-chip" data-rules-state="0">OFF</button>
+              <button type="button" class="tbl-chip" data-rules-state="1">On</button>
+              <button type="button" class="tbl-chip" data-rules-state="0">Off</button>
             </div>
-            <select id="rulesGroupFilter" aria-label="Filter by group">
+            <select id="rulesGroupFilter" class="rules-select" aria-label="Filter by group">
               <option value="">All groups</option>
               ${groups.map((g) => `<option value="${esc(g)}">${esc(g)}</option>`).join("")}
             </select>
@@ -4925,7 +4946,7 @@ function rulesPanel(cfg) {
 
       <div class="rules-footer-actions rules-edit-only">
         <button type="button" class="btn btn-ghost" id="rulesCancelBtn2">Cancel</button>
-        <button type="button" class="btn btn-primary" id="rulesSave2">Save changes</button>
+        <button type="button" class="btn btn-primary" id="rulesSave2">Save</button>
       </div>
     </div>`;
 }
@@ -4965,10 +4986,10 @@ function bindRulesEditor(cfg) {
     row.classList.toggle("is-off", !on);
     row.dataset.enabled = on ? "1" : "0";
     const lab = row.querySelector(".rule-toggle-lbl");
-    if (lab) lab.textContent = on ? "ON" : "OFF";
+    if (lab) lab.textContent = on ? "On" : "Off";
     const pill = row.querySelector(".rule-state-pill");
     if (pill) {
-      pill.textContent = on ? "ON" : "OFF";
+      pill.textContent = on ? "On" : "Off";
       pill.classList.toggle("is-on", on);
       pill.classList.toggle("is-off", !on);
     }

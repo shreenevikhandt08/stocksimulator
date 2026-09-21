@@ -13,6 +13,16 @@ def run(book: MarketBook, inst: Instrument, idx: int) -> Dict:
     bars = book.series[inst.ticker].bars[: idx + 1]
     px_closes = [b.close for b in bars]
     px = px_closes[-1]
+    live_src = ""
+    try:
+        from app.data.live import TAPE
+
+        q = TAPE.quotes.get(inst.ticker)
+        if q and q.price > 0:
+            px = q.price
+            live_src = q.source or TAPE.source
+    except Exception:
+        live_src = ""
     s50 = sma(px_closes, 50)
     s200 = sma(px_closes, 200)
     r = rsi(px_closes, 14)
@@ -30,8 +40,9 @@ def run(book: MarketBook, inst: Instrument, idx: int) -> Dict:
     tech += 8 if m1m > 0 else -8
     tech = max(5, min(95, tech))
     summary = (
-        f"{inst.name} is {trend}. Last Rs. {px:,.0f}, RSI {r:.0f}, "
-        f"volume {vr:.1f}× average, 1M {m1m:+.1%}."
+        f"{inst.name} is {trend}. Last Rs. {px:,.0f}"
+        + (f" via {live_src}" if live_src else "")
+        + f", RSI {r:.0f}, volume {vr:.1f}× average, 1M {m1m:+.1%}."
     )
     src = market_sources(inst)
     return {

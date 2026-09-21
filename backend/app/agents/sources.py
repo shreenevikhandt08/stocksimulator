@@ -30,7 +30,8 @@ def market_sources(inst: Instrument) -> Dict[str, List]:
     url = yahoo_quote_url(inst)
     return {
         "sources": [
-            "OHLCV price tape (desk bars + live Yahoo when available)",
+            "Configured market-data API (Yahoo / Finnhub / Alpha Vantage)",
+            "OHLCV price tape (desk bars + live feed)",
             "SMA 50 / SMA 200, RSI(14), MACD, ATR(14)",
             "20-day volume ratio + 1W/1M/3M momentum",
         ],
@@ -46,8 +47,9 @@ def news_sources(inst: Instrument) -> Dict[str, List]:
     url = yahoo_quote_url(inst)
     return {
         "sources": [
-            "Simulated company headline feed (desk news events)",
-            "News sentiment score (desk model)",
+            "Configured news APIs (Finnhub, NewsAPI, Yahoo RSS)",
+            "Trusted-source priority when headlines conflict",
+            "News sentiment score (live feed, else desk model)",
             "Earnings calendar / blackout window",
             "Market regime path (Nifty / S&P structure)",
         ],

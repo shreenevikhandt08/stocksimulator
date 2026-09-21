@@ -271,22 +271,26 @@ class LiveTape:
         if usdinr:
             self.usdinr = usdinr
 
-        used = []
+        fh = (s.finnhub_api_key or "").strip()
         av = (s.alpha_vantage_api_key or "").strip()
+        primary = (s.market_data_provider or "yahoo").strip().lower()
+        order = [primary] + [p for p in ("yahoo", "finnhub", "alphavantage") if p != primary]
         crypto = [t for t in batch if INSTR.get(t) and INSTR[t].asset == "crypto"]
         stocks = [t for t in batch if INSTR.get(t) and INSTR[t].asset != "crypto"]
-        if stocks or crypto:
-            used.append("yahoo")
+        used = []
+        for provider in order:
             try:
-                self._refresh_yahoo(stocks + crypto, usdinr)
+                if provider == "yahoo":
+                    self._refresh_yahoo(stocks + crypto, usdinr)
+                    used.append("yahoo")
+                elif provider == "finnhub" and fh:
+                    self._refresh_finnhub(batch, fh, usdinr)
+                    used.append("finnhub")
+                elif provider == "alphavantage" and av:
+                    self._refresh_alphavantage(batch[:3], av, usdinr)
+                    used.append("alphavantage")
             except Exception as e:
-                self.error = f"yahoo: {e}"[:180]
-        if av:
-            used.append("alphavantage")
-            try:
-                self._refresh_alphavantage(batch[:3], av, usdinr)
-            except Exception as e:
-                self.error = f"alphavantage: {e}"[:180]
+                self.error = f"{provider}: {e}"[:180]
         self.source = "+".join(dict.fromkeys(used)) or "none"
         # Only move the live book while NSE cash hours are open — after hours keep last session marks.
         self._apply_quotes_to_book()

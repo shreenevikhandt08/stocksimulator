@@ -98,6 +98,13 @@ class Settings(BaseModel):
     data_file: str = "data/portfolio.json"
     finnhub_api_key: str = ""
     alpha_vantage_api_key: str = ""
+    news_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_model: str = "openai/gpt-4o-mini"
+    market_data_provider: str = "yahoo"
+    news_source_priority: str = "finnhub,newsapi,yahoo"
+    mongo_uri: str = "mongodb://127.0.0.1:27017"
+    mongo_db: str = "sns_capital"
 
     @property
     def cors_origin_list(self) -> list[str]:
@@ -233,6 +240,29 @@ def get_settings() -> Settings:
     market_tz = _env_get(env, "MARKET_TZ")
     if market_tz:
         merged["market_tz"] = market_tz
+
+    mongo_uri = _env_get(env, "MONGO_URI", "MONGODB_URI")
+    if mongo_uri:
+        merged["mongo_uri"] = mongo_uri
+    mongo_db = _env_get(env, "MONGO_DB")
+    if mongo_db:
+        merged["mongo_db"] = mongo_db
+
+    news_key = _env_get(env, "NEWS_API_KEY")
+    if news_key:
+        merged["news_api_key"] = news_key
+    or_key = _env_get(env, "OPENROUTER_API_KEY")
+    if or_key:
+        merged["openrouter_api_key"] = or_key
+    or_model = _env_get(env, "OPENROUTER_MODEL")
+    if or_model:
+        merged["openrouter_model"] = or_model
+    mdp = _env_get(env, "MARKET_DATA_PROVIDER")
+    if mdp:
+        merged["market_data_provider"] = mdp.strip().lower()
+    nsp = _env_get(env, "NEWS_SOURCE_PRIORITY")
+    if nsp:
+        merged["news_source_priority"] = nsp
 
     return Settings.model_validate(merged)
 

@@ -1,41 +1,55 @@
 from __future__ import annotations
 
 import hashlib
-import json
+import hmac
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from typing import Optional
 
-BACKEND_ROOT = Path(__file__).resolve().parents[1]
-USERS_FILE = BACKEND_ROOT / "data" / "users.json"
-SESSION_DAYS = 14
+from pymongo.errors import DuplicateKeyError
 
-_SESSIONS: dict[str, tuple[str, datetime]] = {}
+from app.db import (
+    delete_session,
+    dup_message,
+    find_user_by_id,
+    find_user_login,
+    get_session,
+    insert_user,
+    mongo_ready,
+    replace_user,
+    require_mongo,
+    save_session,
+    touch_last_login,
+    user_taken,
+)
+from app.mongo_schema import PASSWORD_ITERATIONS, SESSION_DAYS, user_document
+
+_UNIQUE_PROFILE = ("pan", "aadhaar")
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _load_users() -> dict:
-    if not USERS_FILE.exists():
-        return {"users": []}
-    try:
-        return json.loads(USERS_FILE.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return {"users": []}
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
-def _save_users(data: dict) -> None:
-    USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    USERS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
-
-
-def _hash_password(password: str, salt: str) -> str:
-    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 120_000)
+def _hash_password(password: str, salt: str, iterations: int = PASSWORD_ITERATIONS) -> str:
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), iterations)
     return digest.hex()
+
+
+def _password_ok(user: dict, password: str) -> bool:
+    block = user.get("password") or {}
+    salt = block.get("salt") or user.get("salt") or ""
+    expected = block.get("hash") or user.get("password_hash") or ""
+    iterations = int(block.get("iterations") or PASSWORD_ITERATIONS)
+    if not salt or not expected:
+        return False
+    got = _hash_password(password, salt, iterations)
+    return hmac.compare_digest(got, expected)
 
 
 def _valid_email(email: str) -> bool:
@@ -77,9 +91,28 @@ def _norm_pan(raw: str) -> str:
     return re.sub(r"[^A-Za-z0-9]", "", str(raw or "")).upper()
 
 
-def signup(email: str, username: str, password: str, name: str = "") -> dict:
+def _ensure_db() -> None:
+    if not mongo_ready():
+        raise ValueError("Database is unavailable. Check MONGO_URI and restart the desk.")
+    require_mongo()
+
+
+def _clean_unique_fields(user: dict) -> dict:
+    out = dict(user)
+    if not str(out.get("phone") or "").strip():
+        out.pop("phone", None)
+    profile = dict(out.get("profile") or {})
+    for key in _UNIQUE_PROFILE:
+        if not str(profile.get(key) or "").strip():
+            profile.pop(key, None)
+    out["profile"] = profile
+    return out
+
+
+def signup(email: str, username: str, password: str, name: str = "", phone: str = "") -> dict:
+    _ensure_db()
     email = email.strip().lower()
-    username = username.strip()
+    username = username.strip().lower()
     name = name.strip()
     if not _valid_email(email):
         raise ValueError("Enter a valid email address")
@@ -87,73 +120,79 @@ def signup(email: str, username: str, password: str, name: str = "") -> dict:
         raise ValueError("Username must be 3–32 characters (letters, numbers, . _ -)")
     if len(password) < 6:
         raise ValueError("Password must be at least 6 characters")
+    phone_n = _norm_phone(phone) if phone else ""
+    if phone_n and not _valid_phone(phone_n):
+        raise ValueError("Enter a valid 10-digit Indian mobile number")
 
-    data = _load_users()
-    users = data.get("users") or []
-    if any(u.get("email") == email for u in users):
+    if user_taken("email", email):
         raise ValueError("Email already registered")
-    if any(u.get("username") == username for u in users):
+    if user_taken("username", username):
         raise ValueError("Username already taken")
+    if phone_n and user_taken("phone", phone_n):
+        raise ValueError("Mobile number already registered on another account")
 
     salt = secrets.token_hex(16)
-    user = {
-        "id": secrets.token_hex(8),
-        "email": email,
-        "username": username,
-        "name": name or username,
-        "salt": salt,
-        "password_hash": _hash_password(password, salt),
-        "created_at": _now().isoformat(),
-    }
-    users.append(user)
-    data["users"] = users
-    _save_users(data)
-    token = _issue_token(user["id"])
+    user_id = secrets.token_hex(8)
+    user = user_document(
+        user_id=user_id,
+        email=email,
+        username=username,
+        name=name or username,
+        salt=salt,
+        password_hash=_hash_password(password, salt),
+        phone=phone_n,
+    )
+    try:
+        insert_user(_clean_unique_fields(user))
+    except DuplicateKeyError as e:
+        raise ValueError(dup_message(e)) from e
+
+    token = _issue_token(user_id)
     return {"token": token, "user": _public_user(user)}
 
 
 def login(login_id: str, password: str) -> dict:
+    _ensure_db()
     login_id = login_id.strip()
     if not login_id or not password:
         raise ValueError("Email/username and password required")
 
-    data = _load_users()
-    users = data.get("users") or []
-    key = login_id.lower() if "@" in login_id else login_id
-    user = next(
-        (u for u in users if u.get("email") == key or u.get("username") == login_id),
-        None,
-    )
-    if not user:
+    user = find_user_login(login_id)
+    if not user or not _password_ok(user, password):
         raise ValueError("Invalid email/username or password")
-    if _hash_password(password, user["salt"]) != user.get("password_hash"):
-        raise ValueError("Invalid email/username or password")
+    if user.get("status") and user.get("status") != "active":
+        raise ValueError("This account is disabled")
 
-    token = _issue_token(user["id"])
+    touch_last_login(user["user_id"])
+    token = _issue_token(user["user_id"])
     return {"token": token, "user": _public_user(user)}
 
 
 def logout(token: str) -> None:
-    if token:
-        _SESSIONS.pop(token, None)
+    if not token or not mongo_ready():
+        return
+    delete_session(_hash_token(token))
 
 
 def resolve_token(token: str) -> Optional[str]:
-    if not token:
+    if not token or not mongo_ready():
         return None
-    row = _SESSIONS.get(token)
+    row = get_session(_hash_token(token))
     if not row:
         return None
-    user_id, expires = row
-    if expires < _now():
-        _SESSIONS.pop(token, None)
-        return None
-    return user_id
+    expires = row.get("expires_at")
+    if isinstance(expires, datetime):
+        exp = expires if expires.tzinfo else expires.replace(tzinfo=timezone.utc)
+        if exp < _now():
+            delete_session(_hash_token(token))
+            return None
+    return str(row.get("user_id") or "") or None
 
 
 def user_by_id(user_id: str) -> Optional[dict]:
-    data = _load_users()
-    return next((u for u in data.get("users") or [] if u.get("id") == user_id), None)
+    if not mongo_ready():
+        return None
+    return find_user_by_id(user_id)
 
 
 def update_profile(
@@ -172,12 +211,11 @@ def update_profile(
     state: Optional[str] = None,
     pincode: Optional[str] = None,
 ) -> dict:
-    data = _load_users()
-    users = data.get("users") or []
-    idx = next((i for i, u in enumerate(users) if u.get("id") == user_id), None)
-    if idx is None:
+    _ensure_db()
+    user = find_user_by_id(user_id)
+    if not user:
         raise ValueError("User not found")
-    user = dict(users[idx])
+    profile = dict(user.get("profile") or {})
 
     if name is not None:
         user["name"] = str(name).strip() or user.get("username") or "User"
@@ -186,15 +224,15 @@ def update_profile(
         email_n = str(email).strip().lower()
         if not _valid_email(email_n):
             raise ValueError("Enter a valid email address")
-        if any(u.get("email") == email_n and u.get("id") != user_id for u in users):
+        if user_taken("email", email_n, user_id):
             raise ValueError("Email already registered")
         user["email"] = email_n
 
     if username is not None:
-        username_n = str(username).strip()
+        username_n = str(username).strip().lower()
         if not _valid_username(username_n):
             raise ValueError("Username must be 3–32 characters (letters, numbers, . _ -)")
-        if any(u.get("username") == username_n and u.get("id") != user_id for u in users):
+        if user_taken("username", username_n, user_id):
             raise ValueError("Username already taken")
         user["username"] = username_n
 
@@ -202,27 +240,34 @@ def update_profile(
         phone_n = _norm_phone(phone)
         if phone_n and not _valid_phone(phone_n):
             raise ValueError("Enter a valid 10-digit Indian mobile number")
-        user["phone"] = phone_n
+        if phone_n and user_taken("phone", phone_n, user_id):
+            raise ValueError("Mobile number already registered on another account")
+        if phone_n:
+            user["phone"] = phone_n
+        else:
+            user.pop("phone", None)
 
     if pan is not None:
         pan_n = _norm_pan(pan)
         if pan_n and not _valid_pan(pan_n):
             raise ValueError("Enter a valid PAN (e.g. ABCDE1234F)")
-        if pan_n and any(
-            _norm_pan(u.get("pan") or "") == pan_n and u.get("id") != user_id for u in users
-        ):
+        if pan_n and user_taken("profile.pan", pan_n, user_id):
             raise ValueError("PAN already registered on another account")
-        user["pan"] = pan_n
+        if pan_n:
+            profile["pan"] = pan_n
+        else:
+            profile.pop("pan", None)
 
     if aadhaar is not None:
         aadhaar_n = _norm_aadhaar(aadhaar)
         if aadhaar_n and not _valid_aadhaar(aadhaar_n):
             raise ValueError("Enter a valid 12-digit Aadhaar number")
-        if aadhaar_n and any(
-            _norm_aadhaar(u.get("aadhaar") or "") == aadhaar_n and u.get("id") != user_id for u in users
-        ):
+        if aadhaar_n and user_taken("profile.aadhaar", aadhaar_n, user_id):
             raise ValueError("Aadhaar already registered on another account")
-        user["aadhaar"] = aadhaar_n
+        if aadhaar_n:
+            profile["aadhaar"] = aadhaar_n
+        else:
+            profile.pop("aadhaar", None)
 
     if dob is not None:
         dob_n = str(dob).strip()
@@ -231,42 +276,46 @@ def update_profile(
                 datetime.fromisoformat(dob_n)
             except ValueError as e:
                 raise ValueError("Date of birth must be YYYY-MM-DD") from e
-            user["dob"] = dob_n[:10]
+            profile["dob"] = dob_n[:10]
         else:
-            user["dob"] = ""
+            profile["dob"] = ""
 
     if address_line is not None:
-        user["address_line"] = str(address_line).strip()[:120]
-
+        profile["address_line"] = str(address_line).strip()[:120]
     if city is not None:
-        user["city"] = str(city).strip()[:60]
-
+        profile["city"] = str(city).strip()[:60]
     if state is not None:
-        user["state"] = str(state).strip()[:60]
-
+        profile["state"] = str(state).strip()[:60]
     if pincode is not None:
         pin_n = re.sub(r"\D+", "", str(pincode or ""))
         if pin_n and not _valid_pincode(pin_n):
             raise ValueError("Enter a valid 6-digit PIN code")
-        user["pincode"] = pin_n
+        profile["pincode"] = pin_n
 
     if password is not None and str(password).strip():
         if len(password) < 6:
             raise ValueError("Password must be at least 6 characters")
         salt = secrets.token_hex(16)
-        user["salt"] = salt
-        user["password_hash"] = _hash_password(password, salt)
+        user["password"] = {
+            "algo": "pbkdf2_sha256",
+            "iterations": PASSWORD_ITERATIONS,
+            "salt": salt,
+            "hash": _hash_password(password, salt),
+        }
 
-    user["updated_at"] = _now().isoformat()
-    users[idx] = user
-    data["users"] = users
-    _save_users(data)
+    user["profile"] = profile
+    user["updated_at"] = _now()
+    try:
+        replace_user(user_id, _clean_unique_fields(user))
+    except DuplicateKeyError as e:
+        raise ValueError(dup_message(e)) from e
     return _public_user(user)
 
 
 def _issue_token(user_id: str) -> str:
     token = secrets.token_urlsafe(32)
-    _SESSIONS[token] = (user_id, _now() + timedelta(days=SESSION_DAYS))
+    expires = _now() + timedelta(days=SESSION_DAYS)
+    save_session(_hash_token(token), user_id, expires)
     return token
 
 
@@ -278,19 +327,20 @@ def _mask_aadhaar(aadhaar: str) -> str:
 
 
 def _public_user(user: dict) -> dict:
-    aadhaar = _norm_aadhaar(user.get("aadhaar") or "")
+    profile = user.get("profile") or {}
+    aadhaar = _norm_aadhaar(profile.get("aadhaar") or user.get("aadhaar") or "")
     return {
-        "id": user["id"],
-        "email": user["email"],
-        "username": user["username"],
-        "name": user.get("name") or user["username"],
+        "id": user.get("user_id") or user.get("id") or "",
+        "email": user.get("email") or "",
+        "username": user.get("username") or "",
+        "name": user.get("name") or user.get("username") or "",
         "phone": user.get("phone") or "",
-        "pan": user.get("pan") or "",
+        "pan": profile.get("pan") or user.get("pan") or "",
         "aadhaar": aadhaar,
         "aadhaar_masked": _mask_aadhaar(aadhaar),
-        "dob": user.get("dob") or "",
-        "address_line": user.get("address_line") or "",
-        "city": user.get("city") or "",
-        "state": user.get("state") or "",
-        "pincode": user.get("pincode") or "",
+        "dob": profile.get("dob") or user.get("dob") or "",
+        "address_line": profile.get("address_line") or user.get("address_line") or "",
+        "city": profile.get("city") or user.get("city") or "",
+        "state": profile.get("state") or user.get("state") or "",
+        "pincode": profile.get("pincode") or user.get("pincode") or "",
     }

@@ -54,6 +54,8 @@ LIVE_DATA=true
 LIVE_POLL_SECONDS=3.0
 ALPHA_VANTAGE_API_KEY=
 FINNHUB_API_KEY=
+MONGO_URI=mongodb://127.0.0.1:27017
+MONGO_DB=sns_capital
 ```
 
 Process env (`$env:PORT`, Railway/Render `PORT`, etc.) overrides the file. Rules stay in `rules.json`, not `.env`.

@@ -10,6 +10,7 @@ from app.api.routes import router
 from app.auth_store import resolve_token
 from app.config import settings
 from app.data.live import TAPE
+from app.db import close_mongo, init_mongo
 from app.user_context import set_user
 
 SITE = Path(__file__).resolve().parents[2] / "frontend" / "site"
@@ -23,9 +24,11 @@ PUBLIC_API = {
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    init_mongo()
     TAPE.start()
     yield
     TAPE.stop()
+    close_mongo()
 
 
 app = FastAPI(
@@ -41,18 +44,14 @@ _cors = settings.cors_origin_list or [
     "http://127.0.0.1:5173",
     "http://localhost:5173",
 ]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=_cors,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
+    # Browser CORS preflight has no Authorization header — never 401 OPTIONS.
+    if request.method == "OPTIONS":
+        return await call_next(request)
     if path.startswith("/api/"):
         if path in PUBLIC_API:
             set_user(None)
@@ -76,6 +75,16 @@ async def auth_middleware(request: Request, call_next):
         response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
         response.headers["Pragma"] = "no-cache"
     return response
+
+
+# CORS must be outermost (added last) so preflight and 401s get ACAO headers.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(router, prefix="/api")
 
